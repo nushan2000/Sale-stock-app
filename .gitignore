@@ -1,0 +1,87 @@
+# ==============================
+
+# GENERAL
+
+# ==============================
+
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+
+# ==============================
+
+# ENV FILES (VERY IMPORTANT)
+
+# ==============================
+
+.env
+*.env
+
+# ==============================
+
+# NODE (React frontend)
+
+# ==============================
+
+frontend/node_modules/
+frontend/build/
+frontend/.env
+
+# ==============================
+
+# JAVA (Spring Boot backend)
+
+# ==============================
+
+backend/target/
+backend/*.jar
+backend/*.war
+backend/.env
+electron
+
+# ==============================
+
+# DOCKER
+
+# ==============================
+
+docker-compose.override.yml
+
+# ==============================
+
+# IDE FILES
+
+# ==============================
+
+.vscode/
+.idea/
+*.iml
+
+# ==============================
+
+# OS FILES
+
+# ==============================
+
+*.pid
+*.seed
+*.pid.lock
+
+# ==============================
+
+# TEST / COVERAGE
+
+# ==============================
+
+coverage/
+*.lcov
+
+# ==============================
+
+# MYSQL DATA (IMPORTANT)
+
+# ==============================
+
+mysql_data/
