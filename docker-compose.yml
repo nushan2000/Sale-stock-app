@@ -1,41 +1,45 @@
-version: '3.8'
+version: '3.9'
 
 services:
+  mysql:
+    image: mysql:8
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "@123"
+      MYSQL_DATABASE: sales_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p@123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: ./backend
-    container_name: backend
+    container_name: spring_backend
+    depends_on:
+      mysql:
+        condition: service_healthy  # Wait for MySQL to be ready
+    environment:
+      # ✅ FIXED: Added allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/sales_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: "@123"
+      FRONTEND_CORS_URL: http://localhost:3000
     ports:
       - "8080:8080"
-    env_file:
-      - ./backend/.env
-    depends_on:
-      - db
 
   frontend:
     build: ./frontend
-    container_name: frontend
-
-  nginx:
-    image: nginx:alpine
-    container_name: nginx
-    ports:
-      - "80:80"
-    volumes:
-      - ./frontend/build:/usr/share/nginx/html
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    container_name: react_frontend
     depends_on:
       - backend
-      - frontend
-
-  db:
-    image: mysql:8
-    container_name: mysql
-    restart: always
-    env_file:
-      - .env
-    volumes:
-      - mysql_data:/var/lib/mysql
+    ports:
+      - "3000:80"
 
 volumes:
   mysql_data:

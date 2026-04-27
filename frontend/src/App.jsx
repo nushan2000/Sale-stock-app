@@ -22,7 +22,7 @@ const SalesPage = () => {
     const [cart, setCart] = React.useState([]);
     
     React.useEffect(() => {
-        axios.get('http://localhost:8080/api/products')
+        axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/products`)
             .then(r => setProducts(r.data))
             .catch(() => {});
     }, []);
@@ -39,11 +39,11 @@ const SalesPage = () => {
     const updateUnitPrice = (pid, p) => setCart(c => c.map(i => i.product.id === pid ? { ...i, unitPrice: p } : i));
     
     const checkout = () => {
-        axios.post('http://localhost:8080/api/sales', { items: cart })
+        axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/sales`, { items: cart })
             .then(() => { 
                 setCart([]); 
                 alert("Sale successful!");
-                axios.get('http://localhost:8080/api/products').then(r => setProducts(r.data)); 
+                axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/products`).then(r => setProducts(r.data)); 
             })
             .catch(err => alert(err.response?.data?.message || err.response?.data || 'Sale failed'));
     };

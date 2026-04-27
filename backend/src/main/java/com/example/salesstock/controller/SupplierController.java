@@ -13,7 +13,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/suppliers")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "${FRONTEND_CORS_URL}")
 @RequiredArgsConstructor
 public class SupplierController {
 
