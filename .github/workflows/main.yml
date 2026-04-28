@@ -49,11 +49,8 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/sales-backend:latest
             docker pull ${{ secrets.DOCKER_USERNAME }}/sales-frontend:latest
 
-            docker stop backend || true
-            docker stop frontend || true
-
-            docker rm backend || true
-            docker rm frontend || true
+            docker rm -f backend || true
+            docker rm -f frontend || true
 
             docker run -d --name backend -p 8080:8080 \
               -e SPRING_DATASOURCE_URL="jdbc:mysql://mysql:3306/sales_db?allowPublicKeyRetrieval=true&useSSL=false" \
