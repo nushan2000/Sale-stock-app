@@ -46,19 +46,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            cd ~/app
             docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
 
-            docker pull ${{ secrets.DOCKER_USERNAME }}/sales-backend:latest
-            docker pull ${{ secrets.DOCKER_USERNAME }}/sales-frontend:latest
-
-            docker rm -f backend || true
-            docker rm -f frontend || true
-
-            docker run -d --name backend -p 8080:8080 \
-              -e SPRING_DATASOURCE_URL="jdbc:mysql://mysql:3306/sales_db?allowPublicKeyRetrieval=true&useSSL=false" \
-              -e SPRING_DATASOURCE_USERNAME=root \
-              -e SPRING_DATASOURCE_PASSWORD="@123" \
-              ${{ secrets.DOCKER_USERNAME }}/sales-backend:latest
-
-            docker run -d --name frontend -p 80:80 \
-              ${{ secrets.DOCKER_USERNAME }}/sales-frontend:latest
+            docker compose pull
+            docker compose up -d
