@@ -48,6 +48,6 @@ jobs:
           script: |
             cd ~/app
             docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-
+            docker rm -f backend frontend || true
             docker-compose pull
             docker-compose up -d
