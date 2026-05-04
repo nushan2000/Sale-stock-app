@@ -12,13 +12,13 @@ const ForgotPassword = ({ onBack }) => {
     const [error, setError] = useState('');
     const [msg, setMsg] = useState('');
 
-    const API_BASE = "http://185.222.242.244:8080" || '/api';
+    const API_BASE = "http://185.222.242.244:8080";
 
     const sendOtp = async (e) => {
         e.preventDefault();
         setError(''); setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+            const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),
@@ -38,7 +38,7 @@ const ForgotPassword = ({ onBack }) => {
         if (newPw.length < 6) { setError('Password must be at least 6 characters.'); return; }
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/auth/reset-password`, {
+            const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, otp, newPassword: newPw }),
