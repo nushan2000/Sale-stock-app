@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://localhost:8080/api'
+  baseURL: 'http://185.222.242.244:8080/api'
 });
 
 // Auto-attach session token to every request

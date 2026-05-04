@@ -21,7 +21,7 @@ import { Container, Row, Col } from 'react-bootstrap';
 
 // Wrap legacy Sales page
 const SalesPage = () => {
-    const API_BASE = "http://localhost:8080";
+    const API_BASE = "http://185.222.242.244:8080";
     const [products, setProducts] = React.useState([]);
     const [cart, setCart] = React.useState([]);
     
