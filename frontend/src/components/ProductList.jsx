@@ -37,7 +37,10 @@ const ProductList = ({
                             <th>Stock No</th>
                             <th>Description</th>
                             <th>Stock</th>
+                            <th>Cost</th>
                             <th>Price</th>
+<th>Manufacture</th>
+<th>Vendor</th>
                             <th>Cart</th>
                         </tr>
                     </thead>
@@ -47,7 +50,10 @@ const ProductList = ({
                                 <td>{product.stockNo}</td>
                                 <td>{product.description}</td>
                                 <td>{product.amountInStock}</td>
+                                <td>Rs.{product.cost?.toFixed(2)}</td>
                                 <td>Rs.{product.retail?.toFixed(2)}</td>
+                                <td>{product.manufactur}</td>
+                                <td>{product.vendor}</td>
                                 <td>
                                     <Button size="sm" onClick={() => addToCart(product)}>
                                         Add
