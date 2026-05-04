@@ -12,7 +12,7 @@ const ForgotPassword = ({ onBack }) => {
     const [error, setError] = useState('');
     const [msg, setMsg] = useState('');
 
-    const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+    const API_BASE = "http://185.222.242.244:8080" || '/api';
 
     const sendOtp = async (e) => {
         e.preventDefault();
