@@ -286,3 +286,184 @@ body {
 
 /* ── Scrollbar global ─────────────────────────────────────── */
 * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+/* ══════════════════════════════════════════════════════════════
+   AUTH — Login Page
+   ══════════════════════════════════════════════════════════════ */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Animated gradient orbs */
+.login-bg { position: absolute; inset: 0; pointer-events: none; }
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.35;
+  animation: orb-float 8s ease-in-out infinite alternate;
+}
+.orb1 {
+  width: 420px; height: 420px;
+  background: radial-gradient(circle, #6366f1, #8b5cf6);
+  top: -80px; left: -100px;
+  animation-delay: 0s;
+}
+.orb2 {
+  width: 320px; height: 320px;
+  background: radial-gradient(circle, #06b6d4, #3b82f6);
+  bottom: -60px; right: -60px;
+  animation-delay: 3s;
+}
+.orb3 {
+  width: 240px; height: 240px;
+  background: radial-gradient(circle, #f59e0b, #ef4444);
+  top: 50%; left: 55%;
+  animation-delay: 5s;
+}
+@keyframes orb-float {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(30px, 20px) scale(1.08); }
+}
+
+/* Login card */
+.login-card {
+  position: relative; z-index: 1;
+  width: 100%; max-width: 420px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 20px;
+  padding: 40px 36px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+  animation: card-in 0.5s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.login-brand {
+  display: flex; align-items: center; gap: 10px;
+  justify-content: center; margin-bottom: 28px;
+}
+.login-brand-icon { font-size: 32px; }
+.login-brand-name { font-size: 26px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
+
+.login-title {
+  font-size: 22px; font-weight: 700; color: var(--text);
+  text-align: center; margin-bottom: 4px;
+}
+.login-sub {
+  font-size: 13px; color: var(--text-muted);
+  text-align: center; margin-bottom: 24px;
+}
+
+/* Shared auth form elements */
+.auth-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.auth-field label {
+  font-size: 11px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.auth-field input {
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 11px 14px; border-radius: 10px; font-size: 14px; outline: none;
+  font-family: inherit; transition: border-color 0.15s, box-shadow 0.15s; width: 100%;
+}
+.auth-field input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+}
+
+.pw-wrap { position: relative; display: flex; align-items: center; }
+.pw-wrap input { padding-right: 42px; }
+.pw-toggle {
+  position: absolute; right: 10px;
+  background: none; border: none; cursor: pointer; font-size: 16px;
+  color: var(--text-muted); padding: 4px; line-height: 1;
+}
+.pw-toggle:hover { color: var(--text); }
+
+.auth-btn {
+  width: 100%; padding: 12px;
+  background: linear-gradient(135deg, var(--primary), #8b5cf6);
+  color: #fff; border: none; border-radius: 10px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 4px;
+}
+.auth-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+.auth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.auth-spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+
+.auth-error {
+  background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+  color: #fca5a5; padding: 10px 14px; border-radius: 8px;
+  font-size: 13px; margin-bottom: 16px;
+}
+
+.auth-link {
+  display: block; text-align: center; margin-top: 16px;
+  background: none; border: none; color: var(--text-muted);
+  cursor: pointer; font-size: 13px; text-decoration: underline;
+  font-family: inherit;
+}
+.auth-link:hover { color: var(--primary); }
+
+/* ── Forgot Password Wizard ───────────────────────────────── */
+.login-forgot { animation: card-in 0.3s ease both; }
+.fp-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; text-align: center; }
+.fp-sub { font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 20px; }
+
+.fp-success {
+  text-align: center; padding: 10px 0;
+}
+.fp-check { font-size: 48px; margin-bottom: 12px; }
+.fp-success h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.fp-success p { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
+
+/* ── Sidebar User Footer ──────────────────────────────────── */
+.sidebar-user {
+  border-top: 1px solid var(--border);
+  padding: 12px 14px 52px; /* leave room for toggle btn */
+}
+.sidebar-user.collapsed { padding: 12px 8px 52px; }
+
+.sidebar-user-info {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.sidebar-user-avatar { font-size: 22px; flex-shrink: 0; }
+.sidebar-user-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.sidebar-user-email {
+  font-size: 11px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 130px;
+}
+.sidebar-user-actions { display: flex; flex-direction: column; gap: 4px; }
+.sidebar-action-btn {
+  background: none; border: 1px solid var(--border); color: var(--text-muted);
+  padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 12px;
+  text-align: left; font-family: inherit; transition: background 0.15s, color 0.15s;
+  width: 100%;
+}
+.sidebar-action-btn:hover { background: var(--surface2); color: var(--text); }
+.sidebar-action-btn.danger:hover { background: rgba(239,68,68,0.1); color: var(--danger); border-color: rgba(239,68,68,0.3); }
+
+.sidebar-user-mini {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}

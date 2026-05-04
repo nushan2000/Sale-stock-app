@@ -12,13 +12,16 @@ import CashFlow from './pages/CashFlow';
 import Analytics from './pages/Analytics';
 import ProductList from './components/ProductList';
 import Cart from './components/Cart';
+import LoginPage from './pages/LoginPage';
+import ChangePasswordModal from './components/ChangePasswordModal';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
 import axios from 'axios';
 import { Container, Row, Col } from 'react-bootstrap';
 
 // Wrap legacy Sales page
 const SalesPage = () => {
-    const API_BASE = "http://185.222.242.244:8080";
+    const API_BASE = "http://localhost:8080";
     const [products, setProducts] = React.useState([]);
     const [cart, setCart] = React.useState([]);
     
@@ -59,8 +62,6 @@ const SalesPage = () => {
     );
 };
 
-
-
 const NAV_ITEMS = [
     { to: '/', label: '📊 Dashboard', end: true },
     { to: '/sales', label: '🛒 Inventory & Sales' },
@@ -75,8 +76,24 @@ const NAV_ITEMS = [
     { to: '/suppliers', label: '🏭 Suppliers' },
 ];
 
-const App = () => {
+/* ─── Main app shell (requires auth) ───────────────────────── */
+const AppShell = () => {
+    const { user, logout, loading } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [showChangePw, setShowChangePw] = useState(false);
+
+    if (loading) {
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
+                <div className="dt-loading">
+                    <div className="spinner" />
+                    <span>Loading…</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (!user) return <LoginPage />;
 
     return (
         <HashRouter>
@@ -96,6 +113,41 @@ const App = () => {
                             </NavLink>
                         ))}
                     </nav>
+
+                    {/* User info & actions at bottom of sidebar */}
+                    <div className={`sidebar-user ${sidebarOpen ? '' : 'collapsed'}`}>
+                        {sidebarOpen ? (
+                            <>
+                                <div className="sidebar-user-info">
+                                    <span className="sidebar-user-avatar">👤</span>
+                                    <div>
+                                        <div className="sidebar-user-name">{user.username}</div>
+                                        <div className="sidebar-user-email">{user.email}</div>
+                                    </div>
+                                </div>
+                                <div className="sidebar-user-actions">
+                                    <button
+                                        className="sidebar-action-btn"
+                                        id="change-password-btn"
+                                        onClick={() => setShowChangePw(true)}
+                                        title="Change password"
+                                    >🔐 Change Password</button>
+                                    <button
+                                        className="sidebar-action-btn danger"
+                                        id="logout-btn"
+                                        onClick={logout}
+                                        title="Sign out"
+                                    >🚪 Sign Out</button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="sidebar-user-mini">
+                                <button className="btn-icon" title="Change password" onClick={() => setShowChangePw(true)}>🔐</button>
+                                <button className="btn-icon danger" title="Sign out" onClick={logout}>🚪</button>
+                            </div>
+                        )}
+                    </div>
+
                     <button className="sidebar-toggle" onClick={() => setSidebarOpen(o => !o)}>
                         {sidebarOpen ? '◀' : '▶'}
                     </button>
@@ -118,8 +170,17 @@ const App = () => {
                     </Routes>
                 </main>
             </div>
+
+            {/* Change Password Modal */}
+            {showChangePw && <ChangePasswordModal onClose={() => setShowChangePw(false)} />}
         </HashRouter>
     );
 };
+
+const App = () => (
+    <AuthProvider>
+        <AppShell />
+    </AuthProvider>
+);
 
 export default App;

@@ -1,7 +1,16 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://185.222.242.244:8080/api'
+  baseURL: 'http://localhost:8080/api'
+});
+
+// Auto-attach session token to every request
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    config.headers['X-Auth-Token'] = token;
+  }
+  return config;
 });
 
 export const fmt = (val) =>
