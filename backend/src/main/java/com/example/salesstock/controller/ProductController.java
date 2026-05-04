@@ -59,13 +59,24 @@ public class ProductController {
     @GetMapping
     public Page<Product> getProducts(
             @RequestParam(defaultValue = "") String keyword,
+            @RequestParam(required = false) String manufactur,
             Pageable pageable
     ) {
-        if (keyword.isEmpty()) {
-            return productRepository.findAll(pageable);
-        } else {
+        if (!keyword.isEmpty() && manufactur != null && !manufactur.isEmpty()) {
             return productRepository
-                    .findByDescriptionContainingIgnoreCase(keyword, pageable);
+                    .findByDescriptionContainingIgnoreCaseOrStockNoContainingIgnoreCaseAndManufactur(
+                            keyword, keyword, manufactur, pageable
+                    );
+        } else if (!keyword.isEmpty()) {
+            return productRepository
+                    .findByDescriptionContainingIgnoreCaseOrStockNoContainingIgnoreCase(
+                            keyword, keyword, pageable
+                    );
+        } else if (manufactur != null && !manufactur.isEmpty()) {
+            return productRepository.findByManufactur(manufactur, pageable);
+        } else {
+            return productRepository.findAll(pageable);
         }
     }
+
 }
