@@ -26,20 +26,26 @@ const SalesPage = () => {
     const [products, setProducts] = React.useState([]);
     const [cart, setCart] = React.useState([]);
     
-    React.useEffect(() => {
-        if (!token) return; // 👈 avoid request without token
+    const [search, setSearch] = useState("");
+const [manufacture, setManufacture] = useState("");
+const [page, setPage] = useState(0);
 
-        axios.get(`${API_BASE}/api/products`, {
-            headers: {
-                "X-Auth-Token": token
-            }
-        })
-        .then(r => setProducts(r.data))
-        .catch(err => {
-            console.error("Fetch error:", err);
-        });
+useEffect(() => {
+    if (!token) return;
 
-    }, [token]);
+    axios.get(`${API_BASE}/api/products`, {
+        headers: { "X-Auth-Token": token },
+        params: {
+            keyword: search,
+            manufactur: manufacture,
+            page: page,
+            size: 20
+        }
+    })
+    .then(r => setProducts(r.data.content))
+    .catch(err => console.error(err));
+
+}, [token, search, manufacture, page]);
     
     const addToCart = (product) => {
         setCart(prev => {
@@ -65,7 +71,14 @@ const SalesPage = () => {
     return (
         <Container fluid style={{ paddingLeft: '2%', paddingRight: '2%' }}>
             <Row>
-                <Col md={8}><h5 className="my-2 fw-semibold text-muted">Inventory & Quick Sale</h5><ProductList products={products} addToCart={addToCart} /></Col>
+                <Col md={8}><h5 className="my-2 fw-semibold text-muted">Inventory & Quick Sale</h5><ProductList 
+    products={products}
+    addToCart={addToCart}
+    search={search}
+    setSearch={setSearch}
+    manufacture={manufacture}
+    setManufacture={setManufacture}
+/></Col>
                 <Col md={4}><h5 className="my-2 fw-semibold text-muted">Cart</h5><Cart cart={cart} removeFromCart={removeFromCart} checkout={checkout} updateUnitPrice={updateUnitPrice} /></Col>
             </Row>
         </Container>

@@ -4,6 +4,8 @@ import com.example.salesstock.entity.Product;
 import com.example.salesstock.repository.ProductRepository;
 import com.example.salesstock.service.ProductDetailsImport;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,10 +20,10 @@ public class ProductController {
     @Autowired
     private ProductRepository productRepository;
 
-    @GetMapping
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
-    }
+//    @GetMapping
+//    public List<Product> getAllProducts() {
+//        return productRepository.findAll();
+//    }
 
     @PostMapping
     public Product createProduct(@RequestBody Product product) {
@@ -52,5 +54,18 @@ public class ProductController {
         }
 
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping
+    public Page<Product> getProducts(
+            @RequestParam(defaultValue = "") String keyword,
+            Pageable pageable
+    ) {
+        if (keyword.isEmpty()) {
+            return productRepository.findAll(pageable);
+        } else {
+            return productRepository
+                    .findByDescriptionContainingIgnoreCase(keyword, pageable);
+        }
     }
 }
