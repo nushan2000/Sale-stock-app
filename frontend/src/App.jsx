@@ -21,15 +21,25 @@ import { Container, Row, Col } from 'react-bootstrap';
 
 // Wrap legacy Sales page
 const SalesPage = () => {
+    const { token } = useAuth();
     const API_BASE = "http://185.222.242.244:8080";
     const [products, setProducts] = React.useState([]);
     const [cart, setCart] = React.useState([]);
     
     React.useEffect(() => {
-        axios.get(`${API_BASE}/api/products`)
-            .then(r => setProducts(r.data))
-            .catch(() => {});
-    }, []);
+        if (!token) return; // 👈 avoid request without token
+
+        axios.get(`${API_BASE}/api/products`, {
+            headers: {
+                "X-Auth-Token": token
+            }
+        })
+        .then(r => setProducts(r.data))
+        .catch(err => {
+            console.error("Fetch error:", err);
+        });
+
+    }, [token]);
     
     const addToCart = (product) => {
         setCart(prev => {
@@ -43,11 +53,11 @@ const SalesPage = () => {
     const updateUnitPrice = (pid, p) => setCart(c => c.map(i => i.product.id === pid ? { ...i, unitPrice: p } : i));
     
     const checkout = () => {
-        axios.post(`${API_BASE}/api/sales`, { items: cart })
+        axios.post(`${API_BASE}/api/sales`, { items: cart }, { headers: {"X-Auth-Token": token} })
             .then(() => { 
                 setCart([]); 
                 alert("Sale successful!");
-                axios.get(`${API_BASE}/api/products`).then(r => setProducts(r.data)); 
+                axios.get(`${API_BASE}/api/products`, { headers: {"X-Auth-Token": token} }).then(r => setProducts(r.data)); 
             })
             .catch(err => alert(err.response?.data?.message || err.response?.data || 'Sale failed'));
     };
