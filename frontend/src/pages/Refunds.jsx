@@ -33,7 +33,7 @@ const Refunds = () => {
     useEffect(() => { load(); }, [load]);
     useEffect(() => {
         API.get('/invoices', { params: { size: 100 } }).then(r => setInvoices(r.data.content)).catch(() => {});
-        API.get('/products').then(r => setProducts(r.data)).catch(() => {});
+        API.get('/products').then(r => setProducts(r.data.content)).catch(() => {});
     }, []);
 
     const updateItem = (idx, field, value) => {

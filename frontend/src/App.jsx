@@ -63,7 +63,7 @@ useEffect(() => {
             .then(() => { 
                 setCart([]); 
                 alert("Sale successful!");
-                axios.get(`${API_BASE}/api/products`, { headers: {"X-Auth-Token": token} }).then(r => setProducts(r.data)); 
+                axios.get(`${API_BASE}/api/products`, { headers: {"X-Auth-Token": token} }).then(r => setProducts(r.data.content)); 
             })
             .catch(err => alert(err.response?.data?.message || err.response?.data || 'Sale failed'));
     };

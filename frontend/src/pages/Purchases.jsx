@@ -34,7 +34,7 @@ const Purchases = () => {
     useEffect(() => { load(); }, [load]);
     useEffect(() => {
         API.get('/suppliers/all').then(r => setSuppliers(r.data)).catch(() => {});
-        API.get('/products').then(r => setProducts(r.data)).catch(() => {});
+        API.get('/products').then(r => setProducts(r.data.content)).catch(() => {});
     }, []);
 
     const updateItem = (idx, field, value) => {

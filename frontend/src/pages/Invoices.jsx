@@ -40,7 +40,7 @@ const Invoices = () => {
     useEffect(() => { load(); }, [load]);
     useEffect(() => {
         API.get('/customers/all').then(r => setCustomers(r.data)).catch(() => {});
-        API.get('/products').then(r => setProducts(r.data)).catch(() => {});
+        API.get('/products').then(r => setProducts(r.data.content)).catch(() => {});
     }, []);
 
     const openCreate = () => {
@@ -96,7 +96,7 @@ const Invoices = () => {
     };
 
     const viewInvoice = (id) => {
-        API.get(`/invoices/${id}`).then(r => { setSelectedInvoice(r.data); setViewDialog(true); }).catch(() => {});
+        API.get(`/invoices/${id}`).then(r => { setSelectedInvoice(r.data.content); setViewDialog(true); }).catch(() => {});
     };
 
     const columns = [
