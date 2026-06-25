@@ -144,8 +144,8 @@ const AppShell = () => {
                                 <div className="sidebar-user-info">
                                     <span className="sidebar-user-avatar">👤</span>
                                     <div>
-                                        <div className="sidebar-user-name">{user.username}</div>
-                                        <div className="sidebar-user-email">{user.email}</div>
+                                        <div className="sidebar-user-name">{user?.username || "User"}</div>
+                                        <div className="sidebar-user-email">{user?.email || "user@example.com"}</div>
                                     </div>
                                 </div>
                                 <div className="sidebar-user-actions">
