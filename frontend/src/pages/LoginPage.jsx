@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 /* ─── Forgot Password (3-step wizard) ──────────────────────── */
@@ -122,6 +122,12 @@ const LoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [forgot, setForgot] = useState(false);
+
+
+    useEffect(() => {
+        //bypass login
+        login("admin", "admin123");
+    }, []);
 
     const handleLogin = async (e) => {
         e.preventDefault();
