@@ -7,7 +7,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,18 +22,10 @@ public class TokenAuthFilter extends OncePerRequestFilter {
 
     private final AuthService authService;
 
-    @Value("${app.security.disabled:false}")
-    private boolean securityDisabled;
-
     @Override
     protected void doFilterInternal(HttpServletRequest req,
                                     HttpServletResponse res,
                                     FilterChain chain) throws ServletException, IOException {
-        if (securityDisabled) {
-            chain.doFilter(req, res);
-            return;
-        }
-
         String token = req.getHeader("X-Auth-Token");
         if (token != null && !token.isBlank()) {
             AppUser user = authService.validate(token);
@@ -44,7 +35,6 @@ public class TokenAuthFilter extends OncePerRequestFilter {
                         List.of(new SimpleGrantedAuthority("ROLE_USER")));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
-
         }
         chain.doFilter(req, res);
     }

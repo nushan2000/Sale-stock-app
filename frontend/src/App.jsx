@@ -116,7 +116,7 @@ const AppShell = () => {
         );
     }
 
-    // if (!user) return <LoginPage />;
+     if (!user) return <LoginPage />;
 
     return (
         <HashRouter>
