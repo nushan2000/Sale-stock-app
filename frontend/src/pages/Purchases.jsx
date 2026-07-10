@@ -17,6 +17,7 @@ const Purchases = () => {
     const [error, setError] = useState('');
     const [suppliers, setSuppliers] = useState([]);
     const [products, setProducts] = useState([]);
+    const [supplier, setSupplier] = useState('');
 
     const [form, setForm] = useState({
         supplierId: '', purchaseDate: today(), paymentStatus: 'UNPAID',
@@ -34,8 +35,6 @@ const Purchases = () => {
     useEffect(() => { load(); }, [load]);
     useEffect(() => {
         API.get('/suppliers/all').then(r => setSuppliers(r.data)).catch(() => {});
-        API.get('/products').then(r => setProducts(r.data.content)).catch(() => {});
-        console.log("products",products);
         
     }, []);
 
@@ -62,6 +61,10 @@ const Purchases = () => {
         }).then(() => { setDialog(false); load(); })
           .catch(err => setError(err.response?.data?.message || 'Purchase failed'));
     };
+
+    const supplierProducts=(supplier)=>{
+        API.get(`/products/vendor/${supplier}`).then(r => setProducts(r.data)).catch(() => {});
+    }
 
     const columns = [
         { key: 'grnNumber', label: 'GRN #' },
@@ -94,7 +97,11 @@ const Purchases = () => {
                     <div className="form-grid">
                         <div className="form-group">
                             <label>Supplier</label>
-                            <select value={form.supplierId} onChange={e => setForm(f => ({ ...f, supplierId: e.target.value }))}>
+                            <select value={form.supplierId} onChange={e => {const supplierId = e.target.value;
+                            setForm(f => ({ ...f, supplierId: e.target.value }))
+                                const supplier = suppliers.find(s => s.id.toString() === supplierId);
+                                setSupplier(supplier.name);
+                                supplierProducts(supplier.name);}}>
                                 <option value="">No Supplier (Direct)</option>
                                 {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                             </select>
