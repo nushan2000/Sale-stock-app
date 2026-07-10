@@ -35,6 +35,8 @@ const Purchases = () => {
     useEffect(() => {
         API.get('/suppliers/all').then(r => setSuppliers(r.data)).catch(() => {});
         API.get('/products').then(r => setProducts(r.data.content)).catch(() => {});
+        console.log("products",products);
+        
     }, []);
 
     const updateItem = (idx, field, value) => {
@@ -102,6 +104,11 @@ const Purchases = () => {
                             <input type="date" required value={form.purchaseDate} onChange={e => setForm(f => ({ ...f, purchaseDate: e.target.value }))} />
                         </div>
                         <div className="form-group">
+                            <label>Payment Date *</label>
+                            {/* backend should be change */}
+                            {/* <input type="date" required value={form.paymentDate} onChange={e => setForm(f => ({ ...f, paymentDate: e.target.value }))} /> */}
+                        </div>
+                        <div className="form-group">
                             <label>Payment Status</label>
                             <select value={form.paymentStatus} onChange={e => setForm(f => ({ ...f, paymentStatus: e.target.value }))}>
                                 <option value="UNPAID">Unpaid</option>
@@ -128,7 +135,7 @@ const Purchases = () => {
                                     <td>
                                         <select required value={item.productId} onChange={e => updateItem(idx, 'productId', e.target.value)}>
                                             <option value="">Select Product</option>
-                                            {products.map(p => <option key={p.id} value={p.id}>{p.description}</option>)}
+                                            {products.map(p => <option key={p.id} value={p.id}>{p.stockNo}</option>)}
                                         </select>
                                     </td>
                                     <td><input type="number" min="1" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} style={{ width: 60 }} /></td>

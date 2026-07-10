@@ -79,4 +79,10 @@ public class ProductController {
         }
     }
 
+    //Get products by verndor
+    @GetMapping("/vendor/{vendor}")
+    public List<Product> getProductsByVendor(@PathVariable String vendor) {
+        return productRepository.findByVendor(vendor);
+    }
+
 }
