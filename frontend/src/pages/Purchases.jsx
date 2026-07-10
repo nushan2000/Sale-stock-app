@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import API, { fmt, today } from '../api';
 import DataTable from '../components/DataTable';
 import FormDialog from '../components/FormDialog';
+import Select from "react-select";
 
 const EMPTY_ITEM = { productId: '', quantity: 1, unitCost: '' };
 
@@ -65,6 +66,13 @@ const Purchases = () => {
     const supplierProducts=(supplier)=>{
         API.get(`/products/vendor/${supplier}`).then(r => setProducts(r.data)).catch(() => {});
     }
+
+const productOptions = products
+    .sort((a, b) => a.stockNo.localeCompare(b.stockNo))
+    .map(p => ({
+        value: p.id,
+        label: p.stockNo
+    }));
 
     const columns = [
         { key: 'grnNumber', label: 'GRN #' },
@@ -140,10 +148,15 @@ const Purchases = () => {
                             {form.items.map((item, idx) => (
                                 <tr key={idx}>
                                     <td>
-                                        <select required value={item.productId} onChange={e => updateItem(idx, 'productId', e.target.value)}>
-                                            <option value="">Select Product</option>
-                                            {products.map(p => <option key={p.id} value={p.id}>{p.stockNo}</option>)}
-                                        </select>
+                                        <Select
+    options={productOptions}
+    isSearchable
+    placeholder="Type to search..."
+    value={productOptions.find(o => o.value === item.productId) || null}
+    onChange={(selected) =>
+        updateItem(idx, "productId", selected?.value || "")
+    }
+/>
                                     </td>
                                     <td><input type="number" min="1" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} style={{ width: 60 }} /></td>
                                     <td><input type="number" step="0.01" min="0" value={item.unitCost} onChange={e => updateItem(idx, 'unitCost', e.target.value)} style={{ width: 80 }} /></td>
