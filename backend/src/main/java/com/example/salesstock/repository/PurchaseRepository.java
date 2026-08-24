@@ -14,9 +14,15 @@ public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
     @Query("SELECT MAX(p.grnNumber) FROM Purchase p WHERE p.grnNumber LIKE :prefix%")
     String findMaxGrn(@Param("prefix") String prefix);
 
+    // paidStatus bound as a parameter rather than inlined as a fully-qualified enum
+    // literal — Hibernate 6's HQL parser rejects that form (SemanticException) and
+    // Spring Data validates every @Query method at startup, so this crashes the whole
+    // app on boot rather than failing only when called. See CashFlowRepository for the
+    // same fix.
     @Query("SELECT COALESCE(SUM(p.totalAmount), 0) FROM Purchase p " +
-            "WHERE p.supplier.id = :supplierId AND p.paymentStatus <> com.example.salesstock.entity.Purchase.PaymentStatus.PAID")
-    BigDecimal sumOutstandingBySupplier(@Param("supplierId") Long supplierId);
+            "WHERE p.supplier.id = :supplierId AND p.paymentStatus <> :paidStatus")
+    BigDecimal sumOutstandingBySupplier(@Param("supplierId") Long supplierId,
+                                         @Param("paidStatus") Purchase.PaymentStatus paidStatus);
 
     @Query("SELECT p FROM Purchase p LEFT JOIN p.supplier s WHERE " +
             "(:search IS NULL OR LOWER(p.grnNumber) LIKE LOWER(CONCAT('%', :search, '%')) " +

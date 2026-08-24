@@ -50,6 +50,14 @@ public class SecurityConfig {
                         "/api/customers/**", "/api/suppliers/**", "/api/invoices/**",
                         "/api/purchases/**", "/api/expenses/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/products/import/csv").hasRole("ADMIN")
+                // Inventory & Sales (the public POS screen) and the Dashboard summary work
+                // without logging in. This must come after the CSV-import rule above so that
+                // admin-only endpoint still wins on its more specific match. Note /api/reports/
+                // analytics is intentionally NOT included here — the Analytics page still
+                // requires auth, unlike the plain dashboard summary.
+                .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/sales").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/reports/dashboard").permitAll()
                 // All other API endpoints just require authentication
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
