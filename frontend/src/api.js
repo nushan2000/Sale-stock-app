@@ -1,8 +1,15 @@
 import axios from 'axios';
 
+// Reads the backend origin from the build-time env var (frontend/.env's
+// VITE_API_BASE_URL, also injected via --build-arg in CI) instead of a
+// hardcoded IP, so changing .env actually has an effect.
+const API_ORIGIN = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 const API = axios.create({
-  baseURL: 'http://185.222.242.244:8080/api'
+  baseURL: `${API_ORIGIN}/api`
 });
+
+export const API_BASE_URL = API_ORIGIN;
 
 // Auto-attach session token to every request
 API.interceptors.request.use((config) => {

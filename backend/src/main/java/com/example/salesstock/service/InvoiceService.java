@@ -2,6 +2,7 @@ package com.example.salesstock.service;
 
 import com.example.salesstock.dto.InvoiceDto;
 import com.example.salesstock.dto.InvoiceItemDto;
+import com.example.salesstock.dto.InvoicePaymentDto;
 import com.example.salesstock.dto.PagedResponse;
 import com.example.salesstock.entity.*;
 import com.example.salesstock.exception.BusinessException;
@@ -32,14 +33,18 @@ public class InvoiceService {
     private final DebtRepository debtRepository;
     private final CashFlowRepository cashFlowRepository;
     private final StockMovementRepository stockMovementRepository;
+    private final AuthService authService;
+    private final ShiftService shiftService;
 
-    public PagedResponse<Invoice> getAll(String search, String status, String from, String to,
+    public PagedResponse<Invoice> getAll(String search, String status, String paymentType, String from, String to,
             int page, int size, String sort) {
         Invoice.InvoiceStatus st = status != null && !status.isEmpty() ? Invoice.InvoiceStatus.valueOf(status) : null;
+        Invoice.PaymentType pt = paymentType != null && !paymentType.isEmpty()
+                ? Invoice.PaymentType.valueOf(paymentType) : null;
         LocalDate fromDate = from != null && !from.isEmpty() ? LocalDate.parse(from) : null;
         LocalDate toDate = to != null && !to.isEmpty() ? LocalDate.parse(to) : null;
         Sort s = Sort.by(Sort.Direction.DESC, sort.isEmpty() ? "invoiceDate" : sort);
-        Page<Invoice> result = invoiceRepository.filter(search, st, fromDate, toDate, PageRequest.of(page, size, s));
+        Page<Invoice> result = invoiceRepository.filter(search, st, pt, fromDate, toDate, PageRequest.of(page, size, s));
         return new PagedResponse<>(result.getContent(), result.getNumber(), result.getSize(),
                 result.getTotalElements(), result.getTotalPages(), result.isLast());
     }
@@ -52,6 +57,13 @@ public class InvoiceService {
     public Invoice create(InvoiceDto dto) {
         Invoice invoice = new Invoice();
         invoice.setInvoiceNumber(generateInvoiceNumber());
+        // Best-effort: attach whichever shift the current cashier has open right now,
+        // so shift/till reporting can total this sale. A sale still succeeds with no
+        // shift open — the invoice just won't count toward any shift's totals.
+        AppUser currentUser = authService.getCurrentUser();
+        if (currentUser != null) {
+            invoice.setShift(shiftService.getActiveShift(currentUser));
+        }
         List<StockMovementDto> pendingMovements = new ArrayList<>();
         populateInvoice(invoice, dto, pendingMovements);
         Invoice saved = invoiceRepository.save(invoice);
@@ -90,6 +102,15 @@ public class InvoiceService {
         return saved;
     }
 
+    public Invoice updateChequeStatus(Long id, Invoice.ChequeStatus status) {
+        Invoice invoice = getById(id);
+        if (invoice.getPaymentType() != Invoice.PaymentType.CHEQUE) {
+            throw new BusinessException("This invoice is not a cheque payment");
+        }
+        invoice.setChequeStatus(status);
+        return invoiceRepository.save(invoice);
+    }
+
     public void delete(Long id) {
         Invoice invoice = getById(id);
         // Restore stock
@@ -117,8 +138,46 @@ public class InvoiceService {
         invoice.setCustomer(customer);
         invoice.setInvoiceDate(dto.getInvoiceDate());
         invoice.setDueDate(dto.getDueDate());
-        invoice.setPaymentType(dto.getPaymentType() != null ? dto.getPaymentType() : Invoice.PaymentType.CASH);
+        Invoice.PaymentType paymentType = dto.getPaymentType() != null ? dto.getPaymentType() : Invoice.PaymentType.CASH;
+        invoice.setPaymentType(paymentType);
         invoice.setNotes(dto.getNotes());
+
+        // Cheque / split payment details — clear whichever doesn't apply so an
+        // update() that changes payment type doesn't leave stale data behind.
+        invoice.getPayments().clear();
+        invoice.setChequeNumber(null);
+        invoice.setChequeBank(null);
+        invoice.setChequeDate(null);
+        invoice.setChequeStatus(null);
+
+        if (paymentType == Invoice.PaymentType.CHEQUE) {
+            if (dto.getChequeNumber() == null || dto.getChequeNumber().isBlank()) {
+                throw new BusinessException("Cheque number is required for cheque payments");
+            }
+            invoice.setChequeNumber(dto.getChequeNumber());
+            invoice.setChequeBank(dto.getChequeBank());
+            invoice.setChequeDate(dto.getChequeDate());
+            invoice.setChequeStatus(Invoice.ChequeStatus.PENDING);
+        } else if (paymentType == Invoice.PaymentType.SPLIT) {
+            if (dto.getPayments() == null || dto.getPayments().isEmpty()) {
+                throw new BusinessException("At least one payment row is required for a split payment");
+            }
+            BigDecimal paymentsTotal = BigDecimal.ZERO;
+            for (InvoicePaymentDto pDto : dto.getPayments()) {
+                InvoicePayment payment = new InvoicePayment();
+                payment.setInvoice(invoice);
+                payment.setMethod(pDto.getMethod());
+                payment.setAmount(pDto.getAmount());
+                invoice.getPayments().add(payment);
+                paymentsTotal = paymentsTotal.add(pDto.getAmount());
+            }
+            BigDecimal paidAmount = dto.getPaidAmount() != null ? dto.getPaidAmount() : BigDecimal.ZERO;
+            // Allow a 1-cent tolerance for rounding.
+            if (paymentsTotal.subtract(paidAmount).abs().compareTo(new BigDecimal("0.01")) > 0) {
+                throw new BusinessException("Split payment rows (" + paymentsTotal
+                        + ") must add up to the paid amount (" + paidAmount + ")");
+            }
+        }
 
         BigDecimal subtotal = BigDecimal.ZERO;
         for (InvoiceItemDto itemDto : dto.getItems()) {

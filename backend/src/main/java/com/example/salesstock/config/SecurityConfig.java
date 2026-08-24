@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -14,6 +15,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -40,7 +42,15 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public auth endpoints
                 .requestMatchers("/api/auth/login", "/api/auth/forgot-password", "/api/auth/reset-password").permitAll()
-                // All other API endpoints require authentication
+                // User administration and sensitive deletions are ADMIN-only. These
+                // matchers must come before the general "/api/**".authenticated() rule
+                // below since Spring Security uses first-match-wins.
+                .requestMatchers("/api/users/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE,
+                        "/api/customers/**", "/api/suppliers/**", "/api/invoices/**",
+                        "/api/purchases/**", "/api/expenses/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/products/import/csv").hasRole("ADMIN")
+                // All other API endpoints just require authentication
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
             )
@@ -51,8 +61,18 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        // FRONTEND_CORS_URL may hold one origin or a comma-separated list (e.g. local dev
+        // + the deployed frontend). Previously this bean ignored the property entirely and
+        // hardcoded "*" (allow any origin), which is what actually governed CORS for the
+        // whole app since Spring Security's CORS bean takes precedence over the per-controller
+        // @CrossOrigin annotations that referenced this same property.
+        List<String> origins = Arrays.stream(frontendCorsUrl.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(false);

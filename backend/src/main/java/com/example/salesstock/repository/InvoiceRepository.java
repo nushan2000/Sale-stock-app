@@ -24,11 +24,13 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
                  LOWER(i.invoiceNumber) LIKE LOWER(CONCAT('%', :search, '%')) OR
                  LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')))
            AND (:status IS NULL OR i.status = :status)
+           AND (:paymentType IS NULL OR i.paymentType = :paymentType)
            AND (:from IS NULL OR i.invoiceDate >= :from)
            AND (:to IS NULL OR i.invoiceDate <= :to)
            """)
         Page<Invoice> filter(@Param("search") String search,
                              @Param("status") InvoiceStatus status,
+                             @Param("paymentType") Invoice.PaymentType paymentType,
                              @Param("from") LocalDate from,
                              @Param("to") LocalDate to,
                              Pageable pageable);
@@ -54,13 +56,21 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
            """)
         long pendingInvoiceCount(@Param("statuses") java.util.List<InvoiceStatus> statuses);
 
+        @Query("SELECT COALESCE(SUM(i.grandTotal), 0) FROM Invoice i WHERE i.shift.id = :shiftId")
+        BigDecimal sumGrandTotalByShift(@Param("shiftId") Long shiftId);
+
+        @Query("SELECT COALESCE(SUM(i.grandTotal), 0) FROM Invoice i " +
+                "WHERE i.shift.id = :shiftId AND i.paymentType = :paymentType")
+        BigDecimal sumGrandTotalByShiftAndPaymentType(@Param("shiftId") Long shiftId,
+                                                       @Param("paymentType") Invoice.PaymentType paymentType);
+
         @Query(value = """
     SELECT COALESCE(SUM(ii.quantity * p.cost), 0) AS total_product_cost
-    FROM sale_item ii
-    JOIN sale i ON ii.sale_id = i.id
+    FROM invoice_item ii
+    JOIN invoice i ON ii.invoice_id = i.id
     JOIN product p ON ii.product_id = p.id
-    WHERE i.date >= :from
-      AND i.date <= :to
+    WHERE i.invoice_date >= :from
+      AND i.invoice_date <= :to
 """, nativeQuery = true)
         BigDecimal sumProductCost(@Param("from") LocalDate from,
                                   @Param("to") LocalDate to);

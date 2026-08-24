@@ -18,7 +18,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/cashflow")
-@CrossOrigin(origins = "${FRONTEND_CORS_URL}")
 @RequiredArgsConstructor
 public class CashFlowController {
 

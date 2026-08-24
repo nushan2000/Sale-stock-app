@@ -7,11 +7,16 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
     @Query("SELECT MAX(p.grnNumber) FROM Purchase p WHERE p.grnNumber LIKE :prefix%")
     String findMaxGrn(@Param("prefix") String prefix);
+
+    @Query("SELECT COALESCE(SUM(p.totalAmount), 0) FROM Purchase p " +
+            "WHERE p.supplier.id = :supplierId AND p.paymentStatus <> com.example.salesstock.entity.Purchase.PaymentStatus.PAID")
+    BigDecimal sumOutstandingBySupplier(@Param("supplierId") Long supplierId);
 
     @Query("SELECT p FROM Purchase p LEFT JOIN p.supplier s WHERE " +
             "(:search IS NULL OR LOWER(p.grnNumber) LIKE LOWER(CONCAT('%', :search, '%')) " +

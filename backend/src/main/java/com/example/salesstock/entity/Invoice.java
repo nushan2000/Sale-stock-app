@@ -24,6 +24,13 @@ public class Invoice {
     @JoinColumn(name = "customer_id")
     private Customer customer;
 
+    // Best-effort link to the cashier shift this sale was rung up under (nullable —
+    // sales still work with no shift open; shift/till reporting is just unavailable
+    // for that invoice). Set automatically from the current user's active shift.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shift_id")
+    private Shift shift;
+
     @Column(name = "invoice_date", nullable = false)
     private LocalDate invoiceDate;
 
@@ -58,6 +65,21 @@ public class Invoice {
     @Column(name = "payment_type")
     private PaymentType paymentType = PaymentType.CASH;
 
+    // Populated only when paymentType == SPLIT; the individual rows must sum to paidAmount.
+    @OneToMany(mappedBy = "invoice", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<InvoicePayment> payments = new ArrayList<>();
+
+    // Populated only when paymentType == CHEQUE.
+    @Column(name = "cheque_number")
+    private String chequeNumber;
+    @Column(name = "cheque_bank")
+    private String chequeBank;
+    @Column(name = "cheque_date")
+    private LocalDate chequeDate;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cheque_status")
+    private ChequeStatus chequeStatus;
+
     private String notes;
 
     @Column(name = "created_at")
@@ -68,6 +90,10 @@ public class Invoice {
     }
 
     public enum PaymentType {
-        CASH, CARD, CREDIT
+        CASH, CARD, CREDIT, CHEQUE, SPLIT
+    }
+
+    public enum ChequeStatus {
+        PENDING, CLEARED, BOUNCED
     }
 }

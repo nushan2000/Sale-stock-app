@@ -2,10 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import API from '../api';
 import DataTable from '../components/DataTable';
 import FormDialog from '../components/FormDialog';
+import { useAuth } from '../context/AuthContext';
 
 const EMPTY = { name: '', phone: '', email: '', address: '', creditLimit: '', notes: '' };
 
 const Customers = () => {
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'ADMIN';
     const [rows, setRows] = useState([]);
     const [totalPages, setTotalPages] = useState(1);
     const [page, setPage] = useState(0);
@@ -72,7 +75,7 @@ const Customers = () => {
                 actions={(row) => (
                     <>
                         <button className="btn-icon" onClick={() => openEdit(row)}>✏️</button>
-                        <button className="btn-icon danger" onClick={() => del(row.id)}>🗑️</button>
+                        {isAdmin && <button className="btn-icon danger" onClick={() => del(row.id)}>🗑️</button>}
                     </>
                 )}
             />

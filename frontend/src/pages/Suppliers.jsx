@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import API from '../api';
+import API, { fmt, today } from '../api';
 import DataTable from '../components/DataTable';
 import FormDialog from '../components/FormDialog';
+import { useAuth } from '../context/AuthContext';
 
 const EMPTY = { name: '', phone: '', email: '', address: '', notes: '' };
+const EMPTY_PAYMENT = { amount: '', paymentMethod: 'CASH', paymentDate: today(), note: '' };
 
 const Suppliers = () => {
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'ADMIN';
     const [rows, setRows] = useState([]);
     const [totalPages, setTotalPages] = useState(1);
     const [page, setPage] = useState(0);
@@ -15,6 +19,12 @@ const Suppliers = () => {
     const [form, setForm] = useState(EMPTY);
     const [editId, setEditId] = useState(null);
     const [error, setError] = useState('');
+
+    const [payDialog, setPayDialog] = useState(false);
+    const [selectedSupplier, setSelectedSupplier] = useState(null);
+    const [payForm, setPayForm] = useState(EMPTY_PAYMENT);
+    const [historyDialog, setHistoryDialog] = useState(false);
+    const [payments, setPayments] = useState([]);
 
     const load = useCallback(() => {
         setLoading(true);
@@ -41,6 +51,28 @@ const Suppliers = () => {
         API.delete(`/suppliers/${id}`).then(load).catch(() => setError('Delete failed'));
     };
 
+    const openPay = (supplier) => {
+        setSelectedSupplier(supplier);
+        setPayForm({ ...EMPTY_PAYMENT, amount: supplier.totalPayable || '' });
+        setPayDialog(true);
+    };
+
+    const submitPayment = (e) => {
+        e.preventDefault();
+        API.post(`/suppliers/${selectedSupplier.id}/payments`, {
+            ...payForm,
+            amount: parseFloat(payForm.amount),
+        })
+            .then(() => { setPayDialog(false); load(); })
+            .catch(err => setError(err.response?.data?.message || 'Payment failed'));
+    };
+
+    const openHistory = (supplier) => {
+        setSelectedSupplier(supplier);
+        API.get(`/suppliers/${supplier.id}/payments`).then(r => setPayments(r.data)).catch(() => setPayments([]));
+        setHistoryDialog(true);
+    };
+
     const columns = [
         { key: 'id', label: '#' },
         { key: 'name', label: 'Name' },
@@ -62,8 +94,12 @@ const Suppliers = () => {
                 searchPlaceholder="Search suppliers…" loading={loading}
                 actions={(row) => (
                     <>
+                        {row.totalPayable > 0 && (
+                            <button className="btn-sm-primary" onClick={() => openPay(row)}>💰 Pay</button>
+                        )}
+                        <button className="btn-icon" onClick={() => openHistory(row)} title="Payment history">🧾</button>
                         <button className="btn-icon" onClick={() => openEdit(row)}>✏️</button>
-                        <button className="btn-icon danger" onClick={() => del(row.id)}>🗑️</button>
+                        {isAdmin && <button className="btn-icon danger" onClick={() => del(row.id)}>🗑️</button>}
                     </>
                 )}
             />
@@ -92,6 +128,64 @@ const Suppliers = () => {
                         <textarea rows={2} value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} />
                     </div>
                 </form>
+            </FormDialog>
+
+            <FormDialog open={payDialog} onClose={() => setPayDialog(false)} title="Pay Supplier"
+                footer={<><button className="btn-secondary" onClick={() => setPayDialog(false)}>Cancel</button><button className="btn-primary" form="supp-pay-form" type="submit">Confirm Payment</button></>}>
+                {selectedSupplier && (
+                    <form id="supp-pay-form" onSubmit={submitPayment} className="form-grid">
+                        <div className="form-group span-2">
+                            <div className="info-box">
+                                <strong>Supplier:</strong> {selectedSupplier.name}<br />
+                                <strong>Outstanding Payable:</strong> <span style={{ color: '#ef4444' }}>${fmt(selectedSupplier.totalPayable)}</span>
+                            </div>
+                        </div>
+                        <div className="form-group">
+                            <label>Amount *</label>
+                            <input type="number" step="0.01" min="0.01" max={selectedSupplier.totalPayable}
+                                required value={payForm.amount}
+                                onChange={e => setPayForm(f => ({ ...f, amount: e.target.value }))} />
+                        </div>
+                        <div className="form-group">
+                            <label>Payment Date *</label>
+                            <input type="date" required value={payForm.paymentDate}
+                                onChange={e => setPayForm(f => ({ ...f, paymentDate: e.target.value }))} />
+                        </div>
+                        <div className="form-group">
+                            <label>Method</label>
+                            <select value={payForm.paymentMethod}
+                                onChange={e => setPayForm(f => ({ ...f, paymentMethod: e.target.value }))}>
+                                <option value="CASH">Cash</option>
+                                <option value="CARD">Card</option>
+                                <option value="BANK">Bank Transfer</option>
+                                <option value="CHEQUE">Cheque</option>
+                            </select>
+                        </div>
+                        <div className="form-group span-2">
+                            <label>Note</label>
+                            <input value={payForm.note} onChange={e => setPayForm(f => ({ ...f, note: e.target.value }))} />
+                        </div>
+                    </form>
+                )}
+            </FormDialog>
+
+            <FormDialog open={historyDialog} onClose={() => setHistoryDialog(false)}
+                title={`Payment History — ${selectedSupplier?.name || ''}`} size="lg">
+                <table className="dt-table">
+                    <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Note</th></tr></thead>
+                    <tbody>
+                        {payments.length === 0 ? (
+                            <tr><td colSpan={4} className="dt-empty">No payments recorded</td></tr>
+                        ) : payments.map(p => (
+                            <tr key={p.id}>
+                                <td>{p.paymentDate}</td>
+                                <td>${fmt(p.amount)}</td>
+                                <td>{p.paymentMethod}</td>
+                                <td>{p.note || '—'}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </FormDialog>
         </div>
     );

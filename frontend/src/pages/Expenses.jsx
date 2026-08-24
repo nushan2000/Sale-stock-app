@@ -2,12 +2,15 @@ import React, { useState, useEffect, useCallback } from 'react';
 import API, { fmt, today } from '../api';
 import DataTable from '../components/DataTable';
 import FormDialog from '../components/FormDialog';
+import { useAuth } from '../context/AuthContext';
 
 const CATEGORIES = ['RENT', 'UTILITIES', 'SALARY', 'TRANSPORT', 'MAINTENANCE', 'OTHER'];
 
 const EMPTY = { title: '', category: 'OTHER', amount: '', expenseDate: today(), paymentMethod: 'CASH', notes: '' };
 
 const Expenses = () => {
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'ADMIN';
     const [rows, setRows] = useState([]);
     const [totalPages, setTotalPages] = useState(1);
     const [page, setPage] = useState(0);
@@ -81,7 +84,7 @@ const Expenses = () => {
                 actions={(row) => (
                     <>
                         <button className="btn-icon" onClick={() => openEdit(row)}>✏️</button>
-                        <button className="btn-icon danger" onClick={() => del(row.id)}>🗑️</button>
+                        {isAdmin && <button className="btn-icon danger" onClick={() => del(row.id)}>🗑️</button>}
                     </>
                 )}
             />

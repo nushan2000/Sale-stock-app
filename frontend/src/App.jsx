@@ -10,31 +10,36 @@ import Purchases from './pages/Purchases';
 import Expenses from './pages/Expenses';
 import CashFlow from './pages/CashFlow';
 import Analytics from './pages/Analytics';
+import ShiftPage from './pages/ShiftPage';
+import Users from './pages/Users';
 import ProductList from './components/ProductList';
 import Cart from './components/Cart';
 import LoginPage from './pages/LoginPage';
 import ChangePasswordModal from './components/ChangePasswordModal';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import './App.css';
-import axios from 'axios';
+import API from './api';
 import { Container, Row, Col } from 'react-bootstrap';
 
 // Wrap legacy Sales page
 const SalesPage = () => {
     const { token } = useAuth();
-    const API_BASE = "http://185.222.242.244:8080";
     const [products, setProducts] = React.useState([]);
     const [cart, setCart] = React.useState([]);
-    
+
     const [search, setSearch] = useState("");
 const [manufacture, setManufacture] = useState("");
 const [page, setPage] = useState(0);
+const [totalPages, setTotalPages] = useState(1);
+
+// Changing the search/manufacturer filter jumps back to page 0 — otherwise staying on
+// e.g. page 3 while the filtered result set only has 1 page silently returns nothing.
+useEffect(() => { setPage(0); }, [search, manufacture]);
 
 useEffect(() => {
     if (!token) return;
 
-    axios.get(`${API_BASE}/api/products`, {
-        headers: { "X-Auth-Token": token },
+    API.get('/products', {
         params: {
             keyword: search,
             manufactur: manufacture,
@@ -42,11 +47,11 @@ useEffect(() => {
             size: 20
         }
     })
-    .then(r => setProducts(r.data.content))
+    .then(r => { setProducts(r.data.content); setTotalPages(r.data.totalPages); })
     .catch(err => console.error(err));
 
 }, [token, search, manufacture, page]);
-    
+
     const addToCart = (product) => {
         setCart(prev => {
             const ex = prev.find(i => i.product.id === product.id);
@@ -54,16 +59,16 @@ useEffect(() => {
             return [...prev, { product, quantity: 1, unitPrice: product.retail || 0 }];
         });
     };
-    
+
     const removeFromCart = (pid) => setCart(c => c.filter(i => i.product.id !== pid));
     const updateUnitPrice = (pid, p) => setCart(c => c.map(i => i.product.id === pid ? { ...i, unitPrice: p } : i));
-    
+
     const checkout = () => {
-        axios.post(`${API_BASE}/api/sales`, { items: cart }, { headers: {"X-Auth-Token": token} })
-            .then(() => { 
-                setCart([]); 
+        API.post('/sales', { items: cart })
+            .then(() => {
+                setCart([]);
                 alert("Sale successful!");
-                axios.get(`${API_BASE}/api/products`, { headers: {"X-Auth-Token": token} }).then(r => setProducts(r.data.content)); 
+                API.get('/products').then(r => setProducts(r.data.content));
             })
             .catch(err => alert(err.response?.data?.message || err.response?.data || 'Sale failed'));
     };
@@ -71,14 +76,20 @@ useEffect(() => {
     return (
         <Container fluid style={{ paddingLeft: '2%', paddingRight: '2%' }}>
             <Row>
-                <Col md={8}><h5 className="my-2 fw-semibold text-muted">Inventory & Quick Sale</h5><ProductList 
+                <Col md={8}><h5 className="my-2 fw-semibold text-muted">Inventory & Quick Sale</h5><ProductList
     products={products}
     addToCart={addToCart}
     search={search}
     setSearch={setSearch}
     manufacture={manufacture}
     setManufacture={setManufacture}
-/></Col>
+/>
+<div className="dt-pagination">
+    <button className="page-btn" disabled={page === 0} onClick={() => setPage(p => p - 1)}>‹ Prev</button>
+    <span className="page-info">Page {page + 1} of {Math.max(totalPages, 1)}</span>
+    <button className="page-btn" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next ›</button>
+</div>
+</Col>
                 <Col md={4}><h5 className="my-2 fw-semibold text-muted">Cart</h5><Cart cart={cart} removeFromCart={removeFromCart} checkout={checkout} updateUnitPrice={updateUnitPrice} /></Col>
             </Row>
         </Container>
@@ -95,8 +106,13 @@ const NAV_ITEMS = [
     { to: '/expenses', label: '💸 Expenses' },
     { to: '/cashflow', label: '💹 Cash Flow' },
     { to: '/analytics', label: '📈 Analytics' },
+    { to: '/shift', label: '🕒 Shift & Till' },
     { to: '/customers', label: '👤 Customers' },
     { to: '/suppliers', label: '🏭 Suppliers' },
+];
+
+const ADMIN_NAV_ITEMS = [
+    { to: '/users', label: '🧑‍💼 Users' },
 ];
 
 /* ─── Main app shell (requires auth) ───────────────────────── */
@@ -128,7 +144,7 @@ const AppShell = () => {
                         {sidebarOpen && <span className="brand-text">ShopPro</span>}
                     </div>
                     <nav className="sidebar-nav">
-                        {NAV_ITEMS.map(item => (
+                        {[...NAV_ITEMS, ...(user?.role === 'ADMIN' ? ADMIN_NAV_ITEMS : [])].map(item => (
                             <NavLink key={item.to} to={item.to} end={item.end}
                                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
                                 <span className="nav-icon">{item.label.split(' ')[0]}</span>
@@ -188,8 +204,10 @@ const AppShell = () => {
                         <Route path="/expenses" element={<Expenses />} />
                         <Route path="/cashflow" element={<CashFlow />} />
                         <Route path="/analytics" element={<Analytics />} />
+                        <Route path="/shift" element={<ShiftPage />} />
                         <Route path="/customers" element={<Customers />} />
                         <Route path="/suppliers" element={<Suppliers />} />
+                        {user?.role === 'ADMIN' && <Route path="/users" element={<Users />} />}
                     </Routes>
                 </main>
             </div>

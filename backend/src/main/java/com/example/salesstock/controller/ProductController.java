@@ -1,6 +1,7 @@
 package com.example.salesstock.controller;
 
 import com.example.salesstock.entity.Product;
+import com.example.salesstock.exception.BusinessException;
 import com.example.salesstock.repository.ProductRepository;
 import com.example.salesstock.service.ProductDetailsImport;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,11 +11,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/products")
-@CrossOrigin(origins = "${FRONTEND_CORS_URL}")
 public class ProductController {
 
     @Autowired
@@ -27,7 +28,25 @@ public class ProductController {
 
     @PostMapping
     public Product createProduct(@RequestBody Product product) {
+        if (product.getAmountInStock() != null && product.getAmountInStock() < 0) {
+            throw new BusinessException("Stock quantity cannot be negative");
+        }
+        if (product.getCost() != null && product.getCost().compareTo(BigDecimal.ZERO) < 0) {
+            throw new BusinessException("Cost price cannot be negative");
+        }
+        if (product.getRetail() != null && product.getRetail().compareTo(BigDecimal.ZERO) < 0) {
+            throw new BusinessException("Retail price cannot be negative");
+        }
+        // Ignore any client-supplied id/version so this endpoint can only ever create,
+        // never overwrite an existing row by id collision.
+        product.setId(null);
+        product.setVersion(0L);
         return productRepository.save(product);
+    }
+
+    @GetMapping("/manufacturers")
+    public List<String> getManufacturers() {
+        return productRepository.findDistinctManufacturers();
     }
 
     @Autowired
@@ -62,21 +81,7 @@ public class ProductController {
             @RequestParam(required = false) String manufactur,
             Pageable pageable
     ) {
-        if (!keyword.isEmpty() && manufactur != null && !manufactur.isEmpty()) {
-            return productRepository
-                    .findByDescriptionContainingIgnoreCaseOrStockNoContainingIgnoreCaseAndManufactur(
-                            keyword, keyword, manufactur, pageable
-                    );
-        } else if (!keyword.isEmpty()) {
-            return productRepository
-                    .findByDescriptionContainingIgnoreCaseOrStockNoContainingIgnoreCase(
-                            keyword, keyword, pageable
-                    );
-        } else if (manufactur != null && !manufactur.isEmpty()) {
-            return productRepository.findByManufactur(manufactur, pageable);
-        } else {
-            return productRepository.findAll(pageable);
-        }
+        return productRepository.search(keyword, manufactur, pageable);
     }
 
     //Get products by verndor

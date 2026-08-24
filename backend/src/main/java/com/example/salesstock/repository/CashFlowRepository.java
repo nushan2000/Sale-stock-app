@@ -10,8 +10,11 @@ import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface CashFlowRepository extends JpaRepository<CashFlow, Long> {
+
+    Optional<CashFlow> findByReferenceTypeAndReferenceId(String referenceType, Long referenceId);
 
     @Query("SELECT cf FROM CashFlow cf WHERE " +
             "(:type IS NULL OR cf.type = :type) " +
@@ -27,6 +30,16 @@ public interface CashFlowRepository extends JpaRepository<CashFlow, Long> {
 
     @Query("SELECT COALESCE(SUM(cf.amount), 0) FROM CashFlow cf WHERE cf.type = 'CREDIT' AND cf.transactionDate >= :from AND cf.transactionDate <= :to")
     BigDecimal sumCredits(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    // Sales-revenue-specific: only CREDIT entries in the INVOICE category. Debt payments
+    // (category DEBT_PAYMENT) are also typed CREDIT — they're real cash inflow for the
+    // Cash Flow ledger (sumCredits above, used by /cashflow/summary) but must NOT be
+    // counted again as "Sales Revenue" here: the sale was already recognised in full at
+    // invoice-creation time, so including the later debt payment too double-counts it.
+    @Query("SELECT COALESCE(SUM(cf.amount), 0) FROM CashFlow cf WHERE cf.type = 'CREDIT' " +
+            "AND cf.category = com.example.salesstock.entity.CashFlow.FlowCategory.INVOICE " +
+            "AND cf.transactionDate >= :from AND cf.transactionDate <= :to")
+    BigDecimal sumSalesRevenue(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
     @Query("SELECT COALESCE(SUM(cf.amount), 0) FROM CashFlow cf WHERE cf.type = 'DEBIT' AND cf.transactionDate >= :from AND cf.transactionDate <= :to")
     BigDecimal sumDebits(@Param("from") LocalDate from, @Param("to") LocalDate to);

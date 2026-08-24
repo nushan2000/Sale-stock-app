@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import API from '../api';
 
 /* ─── Forgot Password (3-step wizard) ──────────────────────── */
 const ForgotPassword = ({ onBack }) => {
@@ -12,19 +13,12 @@ const ForgotPassword = ({ onBack }) => {
     const [error, setError] = useState('');
     const [msg, setMsg] = useState('');
 
-    const API_BASE = "http://185.222.242.244:8080";
-
     const sendOtp = async (e) => {
         e.preventDefault();
         setError(''); setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email }),
-            });
-            const data = await res.json();
-            setMsg(data.message);
+            const res = await API.post('/auth/forgot-password', { email });
+            setMsg(res.data.message);
             setStep(2);
         } catch {
             setError('Failed to connect. Try again.');
@@ -38,16 +32,10 @@ const ForgotPassword = ({ onBack }) => {
         if (newPw.length < 6) { setError('Password must be at least 6 characters.'); return; }
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, otp, newPassword: newPw }),
-            });
-            const data = await res.json();
-            if (!res.ok) { setError(data.error || 'Failed.'); return; }
+            await API.post('/auth/reset-password', { email, otp, newPassword: newPw });
             setStep(3);
-        } catch {
-            setError('Failed to connect. Try again.');
+        } catch (err) {
+            setError(err.response?.data?.error || 'Failed.');
         } finally { setLoading(false); }
     };
 
@@ -122,12 +110,6 @@ const LoginPage = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [forgot, setForgot] = useState(false);
-
-
-    useEffect(() => {
-        //bypass login
-        login("admin", "admin123");
-    }, []);
 
     const handleLogin = async (e) => {
         e.preventDefault();
