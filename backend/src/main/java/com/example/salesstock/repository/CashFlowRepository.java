@@ -36,10 +36,15 @@ public interface CashFlowRepository extends JpaRepository<CashFlow, Long> {
     // Cash Flow ledger (sumCredits above, used by /cashflow/summary) but must NOT be
     // counted again as "Sales Revenue" here: the sale was already recognised in full at
     // invoice-creation time, so including the later debt payment too double-counts it.
+    // The category is bound as a parameter rather than inlined as a fully-qualified enum
+    // literal in the query string — Hibernate 6's HQL parser rejects that form outright
+    // (SemanticException: "Could not interpret path expression") and fails at startup,
+    // since Spring Data validates every @Query method eagerly when the app boots.
     @Query("SELECT COALESCE(SUM(cf.amount), 0) FROM CashFlow cf WHERE cf.type = 'CREDIT' " +
-            "AND cf.category = com.example.salesstock.entity.CashFlow.FlowCategory.INVOICE " +
+            "AND cf.category = :category " +
             "AND cf.transactionDate >= :from AND cf.transactionDate <= :to")
-    BigDecimal sumSalesRevenue(@Param("from") LocalDate from, @Param("to") LocalDate to);
+    BigDecimal sumCreditsByCategory(@Param("category") CashFlow.FlowCategory category,
+                                     @Param("from") LocalDate from, @Param("to") LocalDate to);
 
     @Query("SELECT COALESCE(SUM(cf.amount), 0) FROM CashFlow cf WHERE cf.type = 'DEBIT' AND cf.transactionDate >= :from AND cf.transactionDate <= :to")
     BigDecimal sumDebits(@Param("from") LocalDate from, @Param("to") LocalDate to);

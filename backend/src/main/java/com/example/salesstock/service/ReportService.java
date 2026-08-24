@@ -33,7 +33,7 @@ public class ReportService {
                 // and quick-Sale entries (both go through InvoiceService), giving a unified
                 // "Today's Sales" figure, without also counting same-day debt collections
                 // on older invoices as if they were new sales (see sumSalesRevenue).
-                BigDecimal todaySales = cashFlowRepository.sumSalesRevenue(today, today);
+                BigDecimal todaySales = cashFlowRepository.sumCreditsByCategory(CashFlow.FlowCategory.INVOICE, today, today);
                 if (todaySales == null)
                         todaySales = BigDecimal.ZERO;
 
@@ -71,7 +71,7 @@ public class ReportService {
                                 : LocalDate.now().withDayOfMonth(1);
                 LocalDate toDate = to != null && !to.isEmpty() ? LocalDate.parse(to) : LocalDate.now();
 
-                BigDecimal totalCredits = cashFlowRepository.sumSalesRevenue(fromDate, toDate);
+                BigDecimal totalCredits = cashFlowRepository.sumCreditsByCategory(CashFlow.FlowCategory.INVOICE, fromDate, toDate);
                 BigDecimal totalRefunds = refundRepository.sumRefunds(fromDate, toDate);
                 BigDecimal totalExpenses = expenseRepository.sumExpenses(fromDate, toDate);
                 BigDecimal totalCost = invoiceRepository.sumProductCost(fromDate, toDate);

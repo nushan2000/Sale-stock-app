@@ -143,7 +143,7 @@ public class PurchaseService {
      * Payables" feature.
      */
     private void recalculateSupplierPayable(Supplier supplier) {
-        BigDecimal payable = purchaseRepository.sumOutstandingBySupplier(supplier.getId());
+        BigDecimal payable = purchaseRepository.sumOutstandingBySupplier(supplier.getId(), Purchase.PaymentStatus.PAID);
         supplier.setTotalPayable(payable != null ? payable : BigDecimal.ZERO);
         supplierRepository.save(supplier);
     }

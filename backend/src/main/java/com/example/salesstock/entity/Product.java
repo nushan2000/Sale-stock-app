@@ -17,8 +17,11 @@ public class Product {
     // columnDefinition gives the new column a DB-level DEFAULT 0 so Hibernate's
     // ddl-auto=update ALTER TABLE backfills existing rows to 0 instead of NULL
     // (a NULL version would never match on the first UPDATE after migration).
+    // NOTE: no "NOT NULL" inside columnDefinition — nullable=false already makes
+    // Hibernate append its own "not null" after this string; including it in both
+    // places doubles up NOT NULL in one column definition, which MySQL rejects.
     @Version
-    @Column(nullable = false, columnDefinition = "BIGINT NOT NULL DEFAULT 0")
+    @Column(nullable = false, columnDefinition = "BIGINT DEFAULT 0")
     private Long version = 0L;
 
     @Column(name = "record_no")

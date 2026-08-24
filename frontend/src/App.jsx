@@ -21,9 +21,10 @@ import './App.css';
 import API from './api';
 import { Container, Row, Col } from 'react-bootstrap';
 
-// Wrap legacy Sales page
+// Wrap legacy Sales page. Deliberately auth-free: Inventory & Sales is the public POS
+// screen (see SecurityConfig's permitAll on GET /api/products and POST /api/sales), so
+// it must not gate its data fetch on a login token the way the rest of the app does.
 const SalesPage = () => {
-    const { token } = useAuth();
     const [products, setProducts] = React.useState([]);
     const [cart, setCart] = React.useState([]);
 
@@ -37,8 +38,6 @@ const [totalPages, setTotalPages] = useState(1);
 useEffect(() => { setPage(0); }, [search, manufacture]);
 
 useEffect(() => {
-    if (!token) return;
-
     API.get('/products', {
         params: {
             keyword: search,
@@ -50,7 +49,7 @@ useEffect(() => {
     .then(r => { setProducts(r.data.content); setTotalPages(r.data.totalPages); })
     .catch(err => console.error(err));
 
-}, [token, search, manufacture, page]);
+}, [search, manufacture, page]);
 
     const addToCart = (product) => {
         setCart(prev => {
@@ -115,7 +114,12 @@ const ADMIN_NAV_ITEMS = [
     { to: '/users', label: '🧑‍💼 Users' },
 ];
 
-/* ─── Main app shell (requires auth) ───────────────────────── */
+// Every section besides Inventory & Sales requires being signed in — dropping in the
+// login page in place of the section's content, rather than redirecting, keeps the
+// sidebar/URL intact so login lands the user back where they were headed.
+const RequireAuth = ({ user, children }) => (user ? children : <LoginPage />);
+
+/* ─── Main app shell (Inventory & Sales is public; everything else requires auth) ── */
 const AppShell = () => {
     const { user, logout, loading } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -131,8 +135,6 @@ const AppShell = () => {
             </div>
         );
     }
-
-     if (!user) return <LoginPage />;
 
     return (
         <HashRouter>
@@ -155,34 +157,47 @@ const AppShell = () => {
 
                     {/* User info & actions at bottom of sidebar */}
                     <div className={`sidebar-user ${sidebarOpen ? '' : 'collapsed'}`}>
-                        {sidebarOpen ? (
-                            <>
-                                <div className="sidebar-user-info">
-                                    <span className="sidebar-user-avatar">👤</span>
-                                    <div>
-                                        <div className="sidebar-user-name">{user?.username || "User"}</div>
-                                        <div className="sidebar-user-email">{user?.email || "user@example.com"}</div>
+                        {user ? (
+                            sidebarOpen ? (
+                                <>
+                                    <div className="sidebar-user-info">
+                                        <span className="sidebar-user-avatar">👤</span>
+                                        <div>
+                                            <div className="sidebar-user-name">{user?.username || "User"}</div>
+                                            <div className="sidebar-user-email">{user?.email || "user@example.com"}</div>
+                                        </div>
                                     </div>
+                                    <div className="sidebar-user-actions">
+                                        <button
+                                            className="sidebar-action-btn"
+                                            id="change-password-btn"
+                                            onClick={() => setShowChangePw(true)}
+                                            title="Change password"
+                                        >🔐 Change Password</button>
+                                        <button
+                                            className="sidebar-action-btn danger"
+                                            id="logout-btn"
+                                            onClick={logout}
+                                            title="Sign out"
+                                        >🚪 Sign Out</button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="sidebar-user-mini">
+                                    <button className="btn-icon" title="Change password" onClick={() => setShowChangePw(true)}>🔐</button>
+                                    <button className="btn-icon danger" title="Sign out" onClick={logout}>🚪</button>
                                 </div>
-                                <div className="sidebar-user-actions">
-                                    <button
-                                        className="sidebar-action-btn"
-                                        id="change-password-btn"
-                                        onClick={() => setShowChangePw(true)}
-                                        title="Change password"
-                                    >🔐 Change Password</button>
-                                    <button
-                                        className="sidebar-action-btn danger"
-                                        id="logout-btn"
-                                        onClick={logout}
-                                        title="Sign out"
-                                    >🚪 Sign Out</button>
+                            )
+                        ) : sidebarOpen ? (
+                            <div className="sidebar-user-info">
+                                <span className="sidebar-user-avatar">🔒</span>
+                                <div>
+                                    <div className="sidebar-user-name">Not signed in</div>
                                 </div>
-                            </>
+                            </div>
                         ) : (
                             <div className="sidebar-user-mini">
-                                <button className="btn-icon" title="Change password" onClick={() => setShowChangePw(true)}>🔐</button>
-                                <button className="btn-icon danger" title="Sign out" onClick={logout}>🚪</button>
+                                <span className="btn-icon" title="Not signed in">🔒</span>
                             </div>
                         )}
                     </div>
@@ -195,25 +210,27 @@ const AppShell = () => {
                 {/* Main content */}
                 <main className="main-content">
                     <Routes>
-                        <Route path="/" element={<Dashboard />} />
+                        {/* Public: no login required */}
                         <Route path="/sales" element={<SalesPage />} />
-                        <Route path="/invoices" element={<Invoices />} />
-                        <Route path="/refunds" element={<Refunds />} />
-                        <Route path="/debts" element={<Debts />} />
-                        <Route path="/purchases" element={<Purchases />} />
-                        <Route path="/expenses" element={<Expenses />} />
-                        <Route path="/cashflow" element={<CashFlow />} />
-                        <Route path="/analytics" element={<Analytics />} />
-                        <Route path="/shift" element={<ShiftPage />} />
-                        <Route path="/customers" element={<Customers />} />
-                        <Route path="/suppliers" element={<Suppliers />} />
+                        <Route path="/" element={<Dashboard />} />
+                        {/* Everything else requires being signed in */}
+                        <Route path="/invoices" element={<RequireAuth user={user}><Invoices /></RequireAuth>} />
+                        <Route path="/refunds" element={<RequireAuth user={user}><Refunds /></RequireAuth>} />
+                        <Route path="/debts" element={<RequireAuth user={user}><Debts /></RequireAuth>} />
+                        <Route path="/purchases" element={<RequireAuth user={user}><Purchases /></RequireAuth>} />
+                        <Route path="/expenses" element={<RequireAuth user={user}><Expenses /></RequireAuth>} />
+                        <Route path="/cashflow" element={<RequireAuth user={user}><CashFlow /></RequireAuth>} />
+                        <Route path="/analytics" element={<RequireAuth user={user}><Analytics /></RequireAuth>} />
+                        <Route path="/shift" element={<RequireAuth user={user}><ShiftPage /></RequireAuth>} />
+                        <Route path="/customers" element={<RequireAuth user={user}><Customers /></RequireAuth>} />
+                        <Route path="/suppliers" element={<RequireAuth user={user}><Suppliers /></RequireAuth>} />
                         {user?.role === 'ADMIN' && <Route path="/users" element={<Users />} />}
                     </Routes>
                 </main>
             </div>
 
             {/* Change Password Modal */}
-            {showChangePw && <ChangePasswordModal onClose={() => setShowChangePw(false)} />}
+            {user && showChangePw && <ChangePasswordModal onClose={() => setShowChangePw(false)} />}
         </HashRouter>
     );
 };

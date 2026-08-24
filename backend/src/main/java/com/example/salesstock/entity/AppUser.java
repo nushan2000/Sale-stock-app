@@ -39,11 +39,21 @@ public class AppUser {
     @JsonIgnore
     private LocalDateTime sessionExpiry;
 
+    // columnDefinition gives these DB-level defaults so Hibernate's ddl-auto=update
+    // ALTER TABLE backfills existing rows to ADMIN/true instead of MySQL's implicit
+    // '' / 0 for a bare NOT NULL column with no default — the same footgun already
+    // guarded against on Product.version. Without this, an existing admin row gets
+    // silently deactivated (active=0) and its role becomes an unparseable '' on the
+    // very next backend restart after this column was introduced.
+    // NOTE: do not put "NOT NULL" inside columnDefinition here — nullable=false already
+    // makes Hibernate append its own "not null" after this string, so including it in
+    // both places renders NOT NULL twice in the same column definition, which MySQL's
+    // parser rejects as invalid syntax.
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(20) DEFAULT 'ADMIN'")
     private Role role = Role.ADMIN;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean active = true;
 
     @Column(name = "created_at")
