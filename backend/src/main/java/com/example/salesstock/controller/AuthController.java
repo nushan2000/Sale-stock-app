@@ -35,7 +35,10 @@ public class AuthController {
     public ResponseEntity<?> me(@RequestHeader("X-Auth-Token") String token) {
         AppUser user = authService.validate(token);
         if (user == null) return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
-        return ResponseEntity.ok(Map.of("username", user.getUsername(), "email", user.getEmail()));
+        return ResponseEntity.ok(Map.of(
+                "username", user.getUsername(),
+                "email", user.getEmail(),
+                "role", user.getRole().name()));
     }
 
     @PostMapping("/change-password")

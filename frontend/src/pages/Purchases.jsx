@@ -89,13 +89,13 @@ const Purchases = () => {
       .catch(() => {});
   };
 
-  const productOptions = products
-    .sort((a, b) => a.stockNo.localeCompare(b.stockNo))
+  const productOptions = [...products]
+    .sort((a, b) => (a.stockNo || "").localeCompare(b.stockNo || ""))
     .map((p) => ({
       value: p.id, // Stored value
-      label: p.stockNo, // Main text
-      description: p.description,
-      stockNo: p.stockNo,
+      label: p.stockNo || "(no stock #)", // Main text
+      description: p.description || "",
+      stockNo: p.stockNo || "",
     }));
 
   const columns = [
@@ -188,12 +188,18 @@ const Purchases = () => {
                 value={form.supplierId}
                 onChange={(e) => {
                   const supplierId = e.target.value;
-                  setForm((f) => ({ ...f, supplierId: e.target.value }));
+                  setForm((f) => ({ ...f, supplierId }));
                   const supplier = suppliers.find(
                     (s) => s.id.toString() === supplierId,
                   );
-                  setSupplier(supplier.name);
-                  supplierProducts(supplier.name);
+                  if (supplier) {
+                    setSupplier(supplier.name);
+                    supplierProducts(supplier.name);
+                  } else {
+                    // "No Supplier (Direct)" selected — clear supplier-scoped state
+                    setSupplier("");
+                    setProducts([]);
+                  }
                 }}
               >
                 <option value="">No Supplier (Direct)</option>
@@ -244,6 +250,7 @@ const Purchases = () => {
                 <option value="CASH">Cash</option>
                 <option value="CARD">Card</option>
                 <option value="CREDIT">Credit</option>
+                <option value="CHEQUE">Cheque</option>
               </select>
             </div>
           </div>

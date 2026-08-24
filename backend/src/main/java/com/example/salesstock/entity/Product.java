@@ -12,6 +12,15 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // Optimistic locking: prevents two concurrent sales from both reading the
+    // same stock level and oversubtracting it (lost-update / oversell race).
+    // columnDefinition gives the new column a DB-level DEFAULT 0 so Hibernate's
+    // ddl-auto=update ALTER TABLE backfills existing rows to 0 instead of NULL
+    // (a NULL version would never match on the first UPDATE after migration).
+    @Version
+    @Column(nullable = false, columnDefinition = "BIGINT NOT NULL DEFAULT 0")
+    private Long version = 0L;
+
     @Column(name = "record_no")
     private String recordNo;
 

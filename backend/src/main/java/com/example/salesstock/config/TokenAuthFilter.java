@@ -30,9 +30,12 @@ public class TokenAuthFilter extends OncePerRequestFilter {
         if (token != null && !token.isBlank()) {
             AppUser user = authService.validate(token);
             if (user != null) {
+                // Authority reflects the user's role (e.g. ROLE_ADMIN, ROLE_STAFF) so
+                // SecurityConfig can gate admin-only routes with hasRole("ADMIN"), while
+                // any authenticated user still satisfies plain authenticated() checks.
                 var auth = new UsernamePasswordAuthenticationToken(
                         user.getUsername(), null,
-                        List.of(new SimpleGrantedAuthority("ROLE_USER")));
+                        List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         }

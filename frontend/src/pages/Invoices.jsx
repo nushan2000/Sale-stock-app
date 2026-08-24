@@ -2,17 +2,24 @@ import React, { useState, useEffect, useCallback } from 'react';
 import API, { fmt, today } from '../api';
 import DataTable from '../components/DataTable';
 import FormDialog from '../components/FormDialog';
+import { useAuth } from '../context/AuthContext';
 
 const STATUS_COLORS = { PAID: '#22c55e', PARTIAL: '#f59e0b', UNPAID: '#ef4444' };
+const CHEQUE_STATUS_COLORS = { PENDING: '#f59e0b', CLEARED: '#22c55e', BOUNCED: '#ef4444' };
 
 const EMPTY_ITEM = { productId: '', productName: '', quantity: 1, unitPrice: '', discount: 0, tax: 0, total: 0 };
+const EMPTY_PAYMENT_ROW = { method: 'CASH', amount: '' };
 
 const Invoices = () => {
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'ADMIN';
+
     const [rows, setRows] = useState([]);
     const [totalPages, setTotalPages] = useState(1);
     const [page, setPage] = useState(0);
     const [search, setSearch] = useState('');
     const [status, setStatus] = useState('');
+    const [paymentType, setPaymentType] = useState('');
     const [from, setFrom] = useState('');
     const [to, setTo] = useState('');
     const [loading, setLoading] = useState(false);
@@ -26,16 +33,18 @@ const Invoices = () => {
     // Form state
     const [form, setForm] = useState({
         customerId: '', invoiceDate: today(), dueDate: '', paymentType: 'CASH',
-        paidAmount: 0, notes: '', items: [{ ...EMPTY_ITEM }]
+        paidAmount: 0, notes: '', items: [{ ...EMPTY_ITEM }],
+        chequeNumber: '', chequeBank: '', chequeDate: today(),
+        payments: [{ ...EMPTY_PAYMENT_ROW }],
     });
 
     const load = useCallback(() => {
         setLoading(true);
-        API.get('/invoices', { params: { search, status, from, to, page, size: 10 } })
+        API.get('/invoices', { params: { search, status, paymentType, from, to, page, size: 10 } })
             .then(r => { setRows(r.data.content); setTotalPages(r.data.totalPages); })
             .catch(() => setError('Failed to load invoices'))
             .finally(() => setLoading(false));
-    }, [search, status, from, to, page]);
+    }, [search, status, paymentType, from, to, page]);
 
     useEffect(() => { load(); }, [load]);
     useEffect(() => {
@@ -44,8 +53,27 @@ const Invoices = () => {
     }, []);
 
     const openCreate = () => {
-        setForm({ customerId: '', invoiceDate: today(), dueDate: '', paymentType: 'CASH', paidAmount: 0, notes: '', items: [{ ...EMPTY_ITEM }] });
+        setForm({
+            customerId: '', invoiceDate: today(), dueDate: '', paymentType: 'CASH', paidAmount: 0, notes: '',
+            items: [{ ...EMPTY_ITEM }], chequeNumber: '', chequeBank: '', chequeDate: today(),
+            payments: [{ ...EMPTY_PAYMENT_ROW }],
+        });
         setDialog(true);
+    };
+
+    const updatePaymentRow = (idx, field, value) => {
+        const payments = [...form.payments];
+        payments[idx] = { ...payments[idx], [field]: value };
+        setForm(f => ({ ...f, payments }));
+    };
+    const addPaymentRow = () => setForm(f => ({ ...f, payments: [...f.payments, { ...EMPTY_PAYMENT_ROW }] }));
+    const removePaymentRow = (idx) => setForm(f => ({ ...f, payments: f.payments.filter((_, i) => i !== idx) }));
+    const splitTotal = form.payments.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+
+    const markChequeStatus = (id, chequeStatus) => {
+        API.patch(`/invoices/${id}/cheque-status`, { status: chequeStatus })
+            .then(load)
+            .catch(err => setError(err.response?.data?.message || 'Failed to update cheque status'));
     };
 
     const updateItem = (idx, field, value) => {
@@ -70,20 +98,24 @@ const Invoices = () => {
     const removeItem = (idx) => setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
 
     const grandTotal = form.items.reduce((s, i) => s + parseFloat(i.total || 0), 0);
-    const balance = (grandTotal - parseFloat(form.paidAmount || 0)).toFixed(2);
+    const effectivePaidAmount = form.paymentType === 'SPLIT' ? splitTotal : parseFloat(form.paidAmount || 0);
+    const balance = (grandTotal - effectivePaidAmount).toFixed(2);
 
     const submit = (e) => {
         e.preventDefault();
         const payload = {
             ...form,
-            paidAmount: parseFloat(form.paidAmount || 0),
+            paidAmount: effectivePaidAmount,
             items: form.items.map(i => ({
                 productId: parseInt(i.productId),
                 quantity: parseInt(i.quantity),
                 unitPrice: parseFloat(i.unitPrice),
                 discount: parseFloat(i.discount || 0),
                 tax: parseFloat(i.tax || 0),
-            }))
+            })),
+            payments: form.paymentType === 'SPLIT'
+                ? form.payments.map(p => ({ method: p.method, amount: parseFloat(p.amount || 0) }))
+                : undefined,
         };
         API.post('/invoices', payload)
             .then(() => { setDialog(false); load(); })
@@ -96,7 +128,7 @@ const Invoices = () => {
     };
 
     const viewInvoice = (id) => {
-        API.get(`/invoices/${id}`).then(r => { setSelectedInvoice(r.data.content); setViewDialog(true); }).catch(() => {});
+        API.get(`/invoices/${id}`).then(r => { setSelectedInvoice(r.data); setViewDialog(true); }).catch(() => {});
     };
 
     const columns = [
@@ -107,7 +139,13 @@ const Invoices = () => {
         { key: 'paidAmount', label: 'Paid', render: r => `$${fmt(r.paidAmount)}` },
         { key: 'balance', label: 'Balance', render: r => `$${fmt(r.balance)}` },
         { key: 'status', label: 'Status', render: r => <span className="badge" style={{ background: STATUS_COLORS[r.status] }}>{r.status}</span> },
-        { key: 'paymentType', label: 'Payment' },
+        {
+            key: 'paymentType', label: 'Payment', render: r => (
+                r.paymentType === 'CHEQUE'
+                    ? <>Cheque <span className="badge" style={{ background: CHEQUE_STATUS_COLORS[r.chequeStatus] || '#94a3b8' }}>{r.chequeStatus}</span></>
+                    : r.paymentType
+            )
+        },
     ];
 
     const filters = (
@@ -117,6 +155,14 @@ const Invoices = () => {
                 <option value="PAID">Paid</option>
                 <option value="PARTIAL">Partial</option>
                 <option value="UNPAID">Unpaid</option>
+            </select>
+            <select value={paymentType} onChange={e => { setPaymentType(e.target.value); setPage(0); }} className="filter-select">
+                <option value="">All Payment Types</option>
+                <option value="CASH">Cash</option>
+                <option value="CARD">Card</option>
+                <option value="CREDIT">Credit</option>
+                <option value="CHEQUE">Cheque</option>
+                <option value="SPLIT">Split</option>
             </select>
             <input type="date" value={from} onChange={e => { setFrom(e.target.value); setPage(0); }} className="filter-date" placeholder="From" />
             <input type="date" value={to} onChange={e => { setTo(e.target.value); setPage(0); }} className="filter-date" placeholder="To" />
@@ -136,7 +182,13 @@ const Invoices = () => {
                 actions={(row) => (
                     <>
                         <button className="btn-icon" onClick={() => viewInvoice(row.id)}>👁️</button>
-                        <button className="btn-icon danger" onClick={() => del(row.id)}>🗑️</button>
+                        {row.paymentType === 'CHEQUE' && row.chequeStatus === 'PENDING' && (
+                            <>
+                                <button className="btn-icon" title="Mark cleared" onClick={() => markChequeStatus(row.id, 'CLEARED')}>✅</button>
+                                <button className="btn-icon danger" title="Mark bounced" onClick={() => markChequeStatus(row.id, 'BOUNCED')}>❌</button>
+                            </>
+                        )}
+                        {isAdmin && <button className="btn-icon danger" onClick={() => del(row.id)}>🗑️</button>}
                     </>
                 )}
             />
@@ -167,9 +219,55 @@ const Invoices = () => {
                                 <option value="CASH">Cash</option>
                                 <option value="CARD">Card</option>
                                 <option value="CREDIT">Credit</option>
+                                <option value="CHEQUE">Cheque</option>
+                                <option value="SPLIT">Split Payment</option>
                             </select>
                         </div>
                     </div>
+
+                    {form.paymentType === 'CHEQUE' && (
+                        <div className="form-grid">
+                            <div className="form-group">
+                                <label>Cheque Number *</label>
+                                <input required value={form.chequeNumber} onChange={e => setForm(f => ({ ...f, chequeNumber: e.target.value }))} />
+                            </div>
+                            <div className="form-group">
+                                <label>Bank Name</label>
+                                <input value={form.chequeBank} onChange={e => setForm(f => ({ ...f, chequeBank: e.target.value }))} />
+                            </div>
+                            <div className="form-group">
+                                <label>Cheque Date</label>
+                                <input type="date" value={form.chequeDate} onChange={e => setForm(f => ({ ...f, chequeDate: e.target.value }))} />
+                            </div>
+                        </div>
+                    )}
+
+                    {form.paymentType === 'SPLIT' && (
+                        <>
+                            <div className="section-label">Payment Rows</div>
+                            <table className="line-items-table">
+                                <thead><tr><th>Method</th><th>Amount</th><th></th></tr></thead>
+                                <tbody>
+                                    {form.payments.map((p, idx) => (
+                                        <tr key={idx}>
+                                            <td>
+                                                <select value={p.method} onChange={e => updatePaymentRow(idx, 'method', e.target.value)}>
+                                                    <option value="CASH">Cash</option>
+                                                    <option value="CARD">Card</option>
+                                                    <option value="BANK">Bank Transfer</option>
+                                                    <option value="CHEQUE">Cheque</option>
+                                                </select>
+                                            </td>
+                                            <td><input type="number" step="0.01" min="0" value={p.amount} onChange={e => updatePaymentRow(idx, 'amount', e.target.value)} style={{ width: 100 }} /></td>
+                                            <td><button type="button" className="btn-icon danger" onClick={() => removePaymentRow(idx)}>✕</button></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            <button type="button" className="btn-secondary btn-sm mt-2" onClick={addPaymentRow}>+ Add Payment Row</button>
+                            <div className="totals-row"><span>Split Total:</span><strong>${fmt(splitTotal)}</strong></div>
+                        </>
+                    )}
 
                     {/* Line Items */}
                     <div className="section-label">Items</div>
@@ -213,11 +311,18 @@ const Invoices = () => {
                             <span>Grand Total:</span>
                             <strong>${fmt(grandTotal)}</strong>
                         </div>
-                        <div className="totals-row">
-                            <label>Paid Amount:</label>
-                            <input type="number" step="0.01" min="0" value={form.paidAmount}
-                                onChange={e => setForm(f => ({ ...f, paidAmount: e.target.value }))} style={{ width: 120 }} />
-                        </div>
+                        {form.paymentType === 'SPLIT' ? (
+                            <div className="totals-row">
+                                <span>Paid Amount (from split rows):</span>
+                                <strong>${fmt(splitTotal)}</strong>
+                            </div>
+                        ) : (
+                            <div className="totals-row">
+                                <label>Paid Amount:</label>
+                                <input type="number" step="0.01" min="0" value={form.paidAmount}
+                                    onChange={e => setForm(f => ({ ...f, paidAmount: e.target.value }))} style={{ width: 120 }} />
+                            </div>
+                        )}
                         <div className="totals-row">
                             <span>Balance:</span>
                             <strong style={{ color: balance > 0 ? '#ef4444' : '#22c55e' }}>${fmt(balance)}</strong>
@@ -240,6 +345,20 @@ const Invoices = () => {
                             <div><strong>Status:</strong> <span className="badge" style={{ background: STATUS_COLORS[selectedInvoice.status] }}>{selectedInvoice.status}</span></div>
                             <div><strong>Payment:</strong> {selectedInvoice.paymentType}</div>
                         </div>
+                        {selectedInvoice.paymentType === 'CHEQUE' && (
+                            <div className="info-box mt-2">
+                                <strong>Cheque #:</strong> {selectedInvoice.chequeNumber}{' '}
+                                {selectedInvoice.chequeBank && <>| <strong>Bank:</strong> {selectedInvoice.chequeBank}</>}{' '}
+                                {selectedInvoice.chequeDate && <>| <strong>Date:</strong> {selectedInvoice.chequeDate}</>}{' '}
+                                | <strong>Status:</strong> <span className="badge" style={{ background: CHEQUE_STATUS_COLORS[selectedInvoice.chequeStatus] }}>{selectedInvoice.chequeStatus}</span>
+                            </div>
+                        )}
+                        {selectedInvoice.paymentType === 'SPLIT' && selectedInvoice.payments?.length > 0 && (
+                            <div className="info-box mt-2">
+                                <strong>Split Payments:</strong>{' '}
+                                {selectedInvoice.payments.map((p, i) => `${p.method}: $${fmt(p.amount)}`).join(' · ')}
+                            </div>
+                        )}
                         <table className="dt-table mt-2">
                             <thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Disc</th><th>Tax</th><th>Total</th></tr></thead>
                             <tbody>

@@ -106,6 +106,10 @@ public class PurchaseService {
             cf.setNote("GRN " + saved.getGrnNumber());
             cashFlowRepository.save(cf);
         }
+
+        if (saved.getSupplier() != null) {
+            recalculateSupplierPayable(saved.getSupplier());
+        }
         return saved;
     }
 
@@ -117,7 +121,31 @@ public class PurchaseService {
             product.setAmountInStock(Math.max(0, product.getAmountInStock() - item.getQuantity()));
             productRepository.save(product);
         }
+
+        // Remove the associated cash-flow entry (if any) so ledger totals stay accurate
+        cashFlowRepository.findByReferenceTypeAndReferenceId("PURCHASE", purchase.getId())
+                .ifPresent(cashFlowRepository::delete);
+
+        Supplier supplier = purchase.getSupplier();
         purchaseRepository.delete(purchase);
+
+        if (supplier != null) {
+            recalculateSupplierPayable(supplier);
+        }
+    }
+
+    /**
+     * Recomputes a supplier's outstanding payable as the sum of totalAmount for
+     * all their non-fully-paid purchases. Note: PARTIAL purchases don't yet track
+     * how much of that amount was already paid (no partial-payment ledger exists
+     * yet for purchases), so PARTIAL is conservatively treated the same as UNPAID
+     * here — full settlement tracking is planned as a follow-up "Supplier
+     * Payables" feature.
+     */
+    private void recalculateSupplierPayable(Supplier supplier) {
+        BigDecimal payable = purchaseRepository.sumOutstandingBySupplier(supplier.getId());
+        supplier.setTotalPayable(payable != null ? payable : BigDecimal.ZERO);
+        supplierRepository.save(supplier);
     }
 
     private String generateGrn() {

@@ -34,5 +34,14 @@ public class InvoiceDto {
 
     private Invoice.InvoiceStatus status;
     private Invoice.PaymentType paymentType;
+
+    // Used only when paymentType == SPLIT; rows must sum to paidAmount.
+    private List<InvoicePaymentDto> payments;
+
+    // Used only when paymentType == CHEQUE.
+    private String chequeNumber;
+    private String chequeBank;
+    private LocalDate chequeDate;
+
     private String notes;
 }

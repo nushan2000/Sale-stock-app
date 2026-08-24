@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Table, Button, Form } from 'react-bootstrap';
+import API from '../api';
 
 const ProductList = ({
     products = [],
@@ -9,6 +10,13 @@ const ProductList = ({
     manufacture,
     setManufacture
 }) => {
+    const [manufacturers, setManufacturers] = useState([]);
+
+    useEffect(() => {
+        API.get('/products/manufacturers')
+            .then(r => setManufacturers(r.data || []))
+            .catch(() => {});
+    }, []);
 
     return (
         <div>
@@ -26,7 +34,7 @@ const ProductList = ({
                     style={{ maxWidth: "200px" }}
                 >
                     <option value="">All Manufacturers</option>
-                    {/* later load from API */}
+                    {manufacturers.map(m => <option key={m} value={m}>{m}</option>)}
                 </Form.Select>
             </div>
 
@@ -50,8 +58,8 @@ const ProductList = ({
                                 <td>{product.stockNo}</td>
                                 <td>{product.description}</td>
                                 <td>{product.amountInStock}</td>
-                                <td>Rs.{product.cost?.toFixed(2)}</td>
-                                <td>Rs.{product.retail?.toFixed(2)}</td>
+                                <td>Rs.{(product.cost ?? 0).toFixed(2)}</td>
+                                <td>Rs.{(product.retail ?? 0).toFixed(2)}</td>
                                 <td>{product.manufactur}</td>
                                 <td>{product.vendor}</td>
                                 <td>

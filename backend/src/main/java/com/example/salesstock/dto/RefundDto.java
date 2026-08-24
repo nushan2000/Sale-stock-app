@@ -2,6 +2,7 @@ package com.example.salesstock.dto;
 
 import com.example.salesstock.entity.Refund;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import java.math.BigDecimal;
@@ -24,5 +25,6 @@ public class RefundDto {
     private Refund.RefundMethod refundMethod;
 
     @Valid
+    @NotEmpty(message = "At least one returned item is required")
     private List<RefundItemDto> returnedItems;
 }

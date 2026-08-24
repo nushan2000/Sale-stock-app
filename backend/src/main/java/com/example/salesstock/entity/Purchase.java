@@ -51,6 +51,6 @@ public class Purchase {
     }
 
     public enum PaymentMethod {
-        CASH, CARD, CREDIT
+        CASH, CARD, CREDIT, CHEQUE
     }
 }

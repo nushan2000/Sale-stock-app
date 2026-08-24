@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -50,6 +51,9 @@ public class AuthService {
         if (user == null || !bCrypt.matches(password, user.getPassword())) {
             return null;
         }
+        if (Boolean.FALSE.equals(user.getActive())) {
+            return null;
+        }
         String token = UUID.randomUUID().toString().replace("-", "");
         user.setSessionToken(token);
         user.setSessionExpiry(LocalDateTime.now().plusHours(24));
@@ -68,6 +72,19 @@ public class AuthService {
             return null;
         }
         return user;
+    }
+
+    /**
+     * Resolves the currently authenticated AppUser from the security context
+     * (TokenAuthFilter sets the authentication name to the username). Returns
+     * null if there is no authenticated user for the current request.
+     */
+    public AppUser getCurrentUser() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) return null;
+        String username = authentication.getName();
+        if (username == null) return null;
+        return userRepo.findByUsername(username).orElse(null);
     }
 
     /** Logout */
@@ -97,7 +114,9 @@ public class AuthService {
         AppUser user = userRepo.findByEmail(email).orElse(null);
         if (user == null) return false;
         String otp = String.format("%06d", random.nextInt(1_000_000));
-        user.setOtpCode(otp);
+        // Store only a hash of the OTP (like the password) — a DB read alone can't be
+        // replayed to complete a reset.
+        user.setOtpCode(bCrypt.encode(otp));
         user.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
         userRepo.save(user);
 
@@ -124,7 +143,7 @@ public class AuthService {
     public boolean resetPassword(String email, String otp, String newPassword) {
         AppUser user = userRepo.findByEmail(email).orElse(null);
         if (user == null) return false;
-        if (user.getOtpCode() == null || !user.getOtpCode().equals(otp)) return false;
+        if (user.getOtpCode() == null || otp == null || !bCrypt.matches(otp, user.getOtpCode())) return false;
         if (user.getOtpExpiry() == null || LocalDateTime.now().isAfter(user.getOtpExpiry())) return false;
 
         user.setPassword(bCrypt.encode(newPassword));

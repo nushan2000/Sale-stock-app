@@ -63,10 +63,23 @@ public class ExpenseService {
     public Expense update(Long id, ExpenseDto dto) {
         Expense expense = getById(id);
         mapDtoToEntity(dto, expense);
-        return expenseRepository.save(expense);
+        Expense saved = expenseRepository.save(expense);
+
+        // Keep the CashFlow ledger entry in sync with the edited expense
+        cashFlowRepository.findByReferenceTypeAndReferenceId("EXPENSE", saved.getId())
+                .ifPresent(cf -> {
+                    cf.setAmount(dto.getAmount());
+                    cf.setTransactionDate(dto.getExpenseDate());
+                    cf.setNote(dto.getTitle());
+                    cashFlowRepository.save(cf);
+                });
+
+        return saved;
     }
 
     public void delete(Long id) {
+        cashFlowRepository.findByReferenceTypeAndReferenceId("EXPENSE", id)
+                .ifPresent(cashFlowRepository::delete);
         expenseRepository.deleteById(id);
     }
 

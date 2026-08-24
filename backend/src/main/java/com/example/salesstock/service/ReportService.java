@@ -29,9 +29,11 @@ public class ReportService {
 
         public DashboardDto getDashboard() {
                 LocalDate today = LocalDate.now();
-                // Use CashFlow credits for today — this covers BOTH Invoice and quick-Sale
-                // entries, giving a unified "Today's Sales" figure on the Dashboard.
-                BigDecimal todaySales = cashFlowRepository.sumCredits(today, today);
+                // Use CashFlow INVOICE-category credits for today — this covers BOTH Invoice
+                // and quick-Sale entries (both go through InvoiceService), giving a unified
+                // "Today's Sales" figure, without also counting same-day debt collections
+                // on older invoices as if they were new sales (see sumSalesRevenue).
+                BigDecimal todaySales = cashFlowRepository.sumSalesRevenue(today, today);
                 if (todaySales == null)
                         todaySales = BigDecimal.ZERO;
 
@@ -69,21 +71,22 @@ public class ReportService {
                                 : LocalDate.now().withDayOfMonth(1);
                 LocalDate toDate = to != null && !to.isEmpty() ? LocalDate.parse(to) : LocalDate.now();
 
-                BigDecimal totalCredits = cashFlowRepository.sumCredits(fromDate, toDate);
-                BigDecimal totalDebits = cashFlowRepository.sumDebits(fromDate, toDate);
+                BigDecimal totalCredits = cashFlowRepository.sumSalesRevenue(fromDate, toDate);
                 BigDecimal totalRefunds = refundRepository.sumRefunds(fromDate, toDate);
                 BigDecimal totalExpenses = expenseRepository.sumExpenses(fromDate, toDate);
                 BigDecimal totalCost = invoiceRepository.sumProductCost(fromDate, toDate);
+                if (totalCost == null)
+                        totalCost = BigDecimal.ZERO;
 
-                // Gross profit = revenue - cost of goods sold
-                // Approximation using invoice items: sum(qty * unitPrice) - sum(qty *
-                // product.cost)
-                // Simplified: use cash flow credits as revenue
-                BigDecimal grossProfit = totalCredits.subtract(totalRefunds);
-                BigDecimal grossProfit2=grossProfit.subtract(totalCost);
-                BigDecimal netProfit = grossProfit2.subtract(totalExpenses);
+                // Net revenue = cash-flow credits for the period minus refunds
+                BigDecimal netRevenue = totalCredits.subtract(totalRefunds);
+                // Gross profit = net revenue - cost of goods sold (uses current product.cost
+                // as an approximation of COGS; a historical per-sale cost snapshot is a
+                // planned follow-up for more accurate margins as costs change over time).
+                BigDecimal grossProfit = netRevenue.subtract(totalCost);
+                BigDecimal netProfit = grossProfit.subtract(totalExpenses);
 
-                long invoiceCount = invoiceRepository.filter(null, null, fromDate, toDate,
+                long invoiceCount = invoiceRepository.filter(null, null, null, fromDate, toDate,
                                 org.springframework.data.domain.PageRequest.of(0, 1)).getTotalElements();
                 long refundCount = refundRepository.filter(fromDate, toDate,
                                 org.springframework.data.domain.PageRequest.of(0, 1)).getTotalElements();
@@ -91,6 +94,7 @@ public class ReportService {
                 return AnalyticsDto.builder()
                                 .salesRevenue(totalCredits)
                                 .totalRefunds(totalRefunds)
+                                .totalCost(totalCost)
                                 .grossProfit(grossProfit)
                                 .totalExpenses(totalExpenses)
                                 .netProfit(netProfit)
