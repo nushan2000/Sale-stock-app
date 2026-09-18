@@ -75,21 +75,26 @@ useEffect(() => {
     return (
         <Container fluid style={{ paddingLeft: '2%', paddingRight: '2%' }}>
             <Row>
-                <Col md={8}><h5 className="my-2 fw-semibold text-muted">Inventory & Quick Sale</h5><ProductList
-    products={products}
-    addToCart={addToCart}
-    search={search}
-    setSearch={setSearch}
-    manufacture={manufacture}
-    setManufacture={setManufacture}
-/>
-<div className="dt-pagination">
-    <button className="page-btn" disabled={page === 0} onClick={() => setPage(p => p - 1)}>‹ Prev</button>
-    <span className="page-info">Page {page + 1} of {Math.max(totalPages, 1)}</span>
-    <button className="page-btn" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next ›</button>
-</div>
-</Col>
-                <Col md={4}><h5 className="my-2 fw-semibold text-muted">Cart</h5><Cart cart={cart} removeFromCart={removeFromCart} checkout={checkout} updateUnitPrice={updateUnitPrice} /></Col>
+                <Col md={8}>
+                    <h3 className="page-title" style={{ margin: '16px 0 12px', fontSize: 20 }}>📦 Inventory & Quick Sale</h3>
+                    <ProductList
+                        products={products}
+                        addToCart={addToCart}
+                        search={search}
+                        setSearch={setSearch}
+                        manufacture={manufacture}
+                        setManufacture={setManufacture}
+                    />
+                    <div className="dt-pagination" style={{ background: 'var(--surface)', borderRadius: '0 0 var(--radius) var(--radius)' }}>
+                        <button className="page-btn" disabled={page === 0} onClick={() => setPage(p => p - 1)}>‹ Prev</button>
+                        <span className="page-info" style={{ color: '#cbd5e1', fontWeight: 600 }}>Page {page + 1} of {Math.max(totalPages, 1)}</span>
+                        <button className="page-btn" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>Next ›</button>
+                    </div>
+                </Col>
+                <Col md={4}>
+                    <h3 className="page-title" style={{ margin: '16px 0 12px', fontSize: 20 }}>🛍️ Shopping Cart</h3>
+                    <Cart cart={cart} removeFromCart={removeFromCart} checkout={checkout} updateUnitPrice={updateUnitPrice} />
+                </Col>
             </Row>
         </Container>
     );

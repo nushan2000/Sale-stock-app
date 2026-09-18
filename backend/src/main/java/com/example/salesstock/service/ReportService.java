@@ -238,7 +238,6 @@ public class ReportService {
                         to = LocalDate.now();
                         from = to.minusDays(29);
                 }
-
                 int p = Math.max(0, page);
                 int s = Math.max(1, Math.min(100, size));
                 Page<TopProductDto> result = invoiceItemRepository.findTopProductsPaged(from, to, PageRequest.of(p, s));

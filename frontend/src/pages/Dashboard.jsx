@@ -5,8 +5,8 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 // Same mapping Invoices.jsx uses for status badges
 const STATUS_COLORS = { PAID: '#22c55e', PARTIAL: '#f59e0b', UNPAID: '#ef4444' };
 
-const AXIS_COLOR = '#94a3b8';
-const GRID_COLOR = 'rgba(255,255,255,0.05)';
+const AXIS_COLOR = '#cbd5e1';
+const GRID_COLOR = 'rgba(255,255,255,0.08)';
 
 const shortDate = (iso) => {
     const d = new Date(iso + 'T00:00:00');
@@ -38,7 +38,7 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
 
     // Top Products & Analysis states
-    const [periodType, setPeriodType] = useState('30days'); // '30days' | 'month' | 'year'
+    const [periodType, setPeriodType] = useState('year'); // 'year' | 'month' | '30days'
     const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
     const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH);
     const [viewMode, setViewMode] = useState('ranking'); // 'ranking' | 'monthlyAnalysis'
@@ -299,7 +299,19 @@ const Dashboard = () => {
                                             <div className="spinner"></div><span>Loading products…</span>
                                         </div>
                                     ) : topProductList.length === 0 ? (
-                                        <div className="dt-empty">No products sold in this period.</div>
+                                        <div className="dt-empty" style={{ padding: '24px 0', textAlign: 'center' }}>
+                                            <div style={{ color: '#94a3b8', marginBottom: 10, fontSize: 13 }}>No products sold in this period.</div>
+                                            {periodType !== 'year' && (
+                                                <button
+                                                    type="button"
+                                                    className="period-pill active"
+                                                    style={{ cursor: 'pointer', padding: '6px 14px', fontSize: 12, display: 'inline-block' }}
+                                                    onClick={() => setPeriodType('year')}
+                                                >
+                                                    📅 View Entire Year ({selectedYear})
+                                                </button>
+                                            )}
+                                        </div>
                                     ) : (
                                         <>
                                             <ul className="rank-list">
@@ -487,11 +499,11 @@ const Dashboard = () => {
                                         <tbody>
                                             {recentSales.map(s => (
                                                 <tr key={s.invoiceNumber}>
-                                                    <td>{s.invoiceNumber}</td>
-                                                    <td>{s.customerName || '—'}</td>
-                                                    <td>{s.invoiceDate}</td>
-                                                    <td><span className="badge" style={{ background: STATUS_COLORS[s.status] }}>{s.status}</span></td>
-                                                    <td style={{ textAlign: 'right', color: '#38bdf8', fontWeight: 600 }}>${fmt(s.grandTotal)}</td>
+                                                    <td style={{ fontWeight: 600, color: '#f8fafc' }}>{s.invoiceNumber}</td>
+                                                    <td style={{ color: s.customerName ? '#f1f5f9' : '#94a3b8' }}>{s.customerName || 'Walk-in Customer'}</td>
+                                                    <td style={{ color: '#cbd5e1' }}>{s.invoiceDate}</td>
+                                                    <td><span className="badge" style={{ background: STATUS_COLORS[s.status], color: '#ffffff', fontWeight: 700 }}>{s.status}</span></td>
+                                                    <td style={{ textAlign: 'right', color: '#38bdf8', fontWeight: 700 }}>${fmt(s.grandTotal)}</td>
                                                 </tr>
                                             ))}
                                         </tbody>

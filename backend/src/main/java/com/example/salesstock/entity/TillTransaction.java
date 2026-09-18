@@ -27,7 +27,7 @@ public class TillTransaction {
 
     private String note;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", columnDefinition = "DATETIME")
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public enum TillType {

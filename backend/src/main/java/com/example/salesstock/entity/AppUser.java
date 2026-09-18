@@ -30,6 +30,7 @@ public class AppUser {
     @JsonIgnore
     private String otpCode;
     @JsonIgnore
+    @Column(name = "otp_expiry", columnDefinition = "DATETIME")
     private LocalDateTime otpExpiry;
 
     // Simple session token (random UUID stored server-side)
@@ -37,6 +38,7 @@ public class AppUser {
     @Column(length = 64)
     private String sessionToken;
     @JsonIgnore
+    @Column(name = "session_expiry", columnDefinition = "DATETIME")
     private LocalDateTime sessionExpiry;
 
     // columnDefinition gives these DB-level defaults so Hibernate's ddl-auto=update
@@ -56,7 +58,7 @@ public class AppUser {
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT TRUE")
     private Boolean active = true;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", columnDefinition = "DATETIME")
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public enum Role {

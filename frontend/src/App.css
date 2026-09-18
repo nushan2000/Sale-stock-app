@@ -22,14 +22,135 @@
   --shadow: 0 4px 24px rgba(0,0,0,0.35);
 }
 
-select option {
-  background-color: var(--surface);
-  color: var(--text);
+/* ── Global Bootstrap Dark Mode Overrides ──────────────────── */
+:root {
+  --bs-body-bg: var(--bg);
+  --bs-body-color: var(--text);
+  --bs-border-color: var(--border);
+  --bs-secondary-color: #cbd5e1;
+  --bs-card-bg: var(--surface);
+  --bs-card-color: var(--text);
+  --bs-card-cap-bg: var(--surface2);
+  --bs-card-cap-color: #f8fafc;
+  --bs-card-border-color: var(--border);
 }
 
-/* Fix Bootstrap text overrides in dark mode */
-.table, .table > :not(caption) > * > * {
+/* Bootstrap Text Muted overrides */
+.text-muted {
+  color: #94a3b8 !important;
+}
+h1.text-muted, h2.text-muted, h3.text-muted, h4.text-muted, h5.text-muted, h6.text-muted {
+  color: #cbd5e1 !important;
+}
+
+/* Bootstrap Table in Dark Theme */
+.table {
+  --bs-table-bg: var(--surface) !important;
+  --bs-table-color: #f1f5f9 !important;
+  --bs-table-border-color: var(--border) !important;
+  --bs-table-striped-bg: rgba(255, 255, 255, 0.035) !important;
+  --bs-table-striped-color: #f8fafc !important;
+  --bs-table-hover-bg: rgba(99, 102, 241, 0.1) !important;
+  --bs-table-hover-color: #ffffff !important;
+  --bs-table-active-bg: rgba(99, 102, 241, 0.15) !important;
+  --bs-table-active-color: #ffffff !important;
+  background-color: var(--surface) !important;
+  color: #f1f5f9 !important;
+  border-color: var(--border) !important;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 0 !important;
+}
+
+.table > thead {
+  background-color: var(--surface2) !important;
+}
+
+.table th,
+.table thead th {
+  background-color: var(--surface2) !important;
+  color: #cbd5e1 !important;
+  font-weight: 600 !important;
+  font-size: 12.5px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 11px 14px !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-color: var(--border) !important;
+}
+
+.table td,
+.table tbody td {
+  background-color: transparent !important;
+  color: #f1f5f9 !important;
+  padding: 10px 14px !important;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.45) !important;
+  border-color: var(--border) !important;
+  vertical-align: middle !important;
+}
+
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+  background-color: rgba(255, 255, 255, 0.03) !important;
+  color: #f8fafc !important;
+}
+
+.table-hover > tbody > tr:hover > * {
+  background-color: rgba(99, 102, 241, 0.09) !important;
+  color: #ffffff !important;
+}
+
+/* Bootstrap Cards */
+.card {
+  background-color: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
   color: var(--text) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.card-header {
+  background-color: var(--surface2) !important;
+  border-bottom: 1px solid var(--border) !important;
+  color: #f8fafc !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+  padding: 13px 18px !important;
+}
+
+.card-body {
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+  padding: 18px !important;
+}
+
+/* Bootstrap Form Controls (Inputs, Selects) */
+.form-control,
+.form-select {
+  background-color: var(--bg) !important;
+  border: 1px solid var(--border) !important;
+  color: #f8fafc !important;
+  border-radius: 8px !important;
+  padding: 8px 12px !important;
+  font-size: 13.5px !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--bg) !important;
+  border-color: var(--primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25) !important;
+}
+
+.form-control::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1;
+}
+
+.form-select option,
+select option {
+  background-color: var(--surface) !important;
+  color: #f8fafc !important;
 }
 
 body {
@@ -171,7 +292,7 @@ body {
 }
 .dt-table tr:hover td { background: rgba(99,102,241,0.04); }
 .dt-table tr:last-child td { border-bottom: none; }
-.dt-empty { text-align: center; color: var(--text-muted); padding: 32px !important; font-style: italic; }
+.dt-empty { text-align: center; color: #94a3b8; padding: 32px !important; font-style: italic; font-weight: 500; }
 .dt-actions { white-space: nowrap; }
 
 .dt-pagination {
@@ -179,12 +300,12 @@ body {
   padding: 12px 16px; border-top: 1px solid var(--border);
 }
 .page-btn {
-  background: var(--surface2); border: 1px solid var(--border); color: var(--text);
-  padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  background: var(--surface2); border: 1px solid var(--border); color: #f8fafc;
+  padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
 }
 .page-btn:hover:not(:disabled) { background: var(--border); }
-.page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-.page-info { color: var(--text-muted); font-size: 13px; }
+.page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.page-info { color: #cbd5e1; font-size: 13px; font-weight: 600; }
 
 .dt-loading { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 48px; color: var(--text-muted); }
 .spinner {
@@ -261,8 +382,18 @@ body {
 }
 .dash-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
 .dash-card-icon { font-size: 28px; }
-.dash-card-value { font-size: 22px; font-weight: 700; line-height: 1.2; }
-.dash-card-label { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.dash-card-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #f8fafc;
+}
+.dash-card-label {
+  font-size: 12.5px;
+  color: #cbd5e1;
+  font-weight: 600;
+  margin-top: 4px;
+}
 
 /* ── Cash Flow Summary ────────────────────────────────────── */
 .cf-summary { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -272,8 +403,8 @@ body {
 }
 .cf-card.credit { border-left: 4px solid var(--success); }
 .cf-card.debit { border-left: 4px solid var(--danger); }
-.cf-card-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
-.cf-card-value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+.cf-card-label { font-size: 12px; color: #cbd5e1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.cf-card-value { font-size: 22px; font-weight: 700; margin-top: 4px; color: #f8fafc; }
 
 /* ── Alerts / Badges ──────────────────────────────────────── */
 .alert-error {
@@ -386,7 +517,7 @@ body {
 .period-pill {
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: #cbd5e1;
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 12px;
