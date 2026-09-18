@@ -5,11 +5,14 @@ import com.example.salesstock.dto.DailyPointDto;
 import com.example.salesstock.dto.DashboardDto;
 import com.example.salesstock.dto.ForecastDto;
 import com.example.salesstock.dto.LowStockItemDto;
+import com.example.salesstock.dto.MonthlyAnalysisDto;
+import com.example.salesstock.dto.PagedResponse;
 import com.example.salesstock.dto.RecentSaleDto;
 import com.example.salesstock.dto.TopProductDto;
 import com.example.salesstock.entity.*;
 import com.example.salesstock.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -217,4 +220,79 @@ public class ReportService {
                                 .trend(trendLabel)
                                 .build();
         }
+
+        public PagedResponse<TopProductDto> getTopProducts(String fromStr, String toStr, Integer year, Integer month, int page, int size) {
+                LocalDate from = null;
+                LocalDate to = null;
+
+                if (year != null && month != null && month >= 1 && month <= 12) {
+                        from = LocalDate.of(year, month, 1);
+                        to = from.withDayOfMonth(from.lengthOfMonth());
+                } else if (year != null) {
+                        from = LocalDate.of(year, 1, 1);
+                        to = LocalDate.of(year, 12, 31);
+                } else if (fromStr != null && !fromStr.isEmpty() && toStr != null && !toStr.isEmpty()) {
+                        from = LocalDate.parse(fromStr);
+                        to = LocalDate.parse(toStr);
+                } else {
+                        to = LocalDate.now();
+                        from = to.minusDays(29);
+                }
+
+                int p = Math.max(0, page);
+                int s = Math.max(1, Math.min(100, size));
+                Page<TopProductDto> result = invoiceItemRepository.findTopProductsPaged(from, to, PageRequest.of(p, s));
+                return new PagedResponse<>(result.getContent(), result.getNumber(), result.getSize(),
+                                result.getTotalElements(), result.getTotalPages(), result.isLast());
+        }
+
+        private static final String[] MONTH_NAMES = {
+                "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        };
+
+        public List<MonthlyAnalysisDto> getMonthlyAnalysis(Integer year) {
+                int y = year != null ? year : LocalDate.now().getYear();
+                LocalDate yearStart = LocalDate.of(y, 1, 1);
+                LocalDate yearEnd = LocalDate.of(y, 12, 31);
+
+                List<Object[]> totals = invoiceItemRepository.getMonthlyTotals(yearStart, yearEnd);
+                Map<Integer, Object[]> totalsByMonth = totals.stream()
+                                .filter(row -> row[0] != null)
+                                .collect(Collectors.toMap(row -> ((Number) row[0]).intValue(), row -> row, (a, b) -> a));
+
+                List<MonthlyAnalysisDto> list = new ArrayList<>();
+                for (int m = 1; m <= 12; m++) {
+                        Object[] row = totalsByMonth.get(m);
+                        BigDecimal rev = row != null && row[1] != null ? (BigDecimal) row[1] : BigDecimal.ZERO;
+                        Long qty = row != null && row[2] != null ? ((Number) row[2]).longValue() : 0L;
+                        Long invCount = row != null && row[3] != null ? ((Number) row[3]).longValue() : 0L;
+
+                        LocalDate mStart = LocalDate.of(y, m, 1);
+                        LocalDate mEnd = mStart.withDayOfMonth(mStart.lengthOfMonth());
+                        List<TopProductDto> topList = invoiceItemRepository.findTopProducts(mStart, mEnd, PageRequest.of(0, 1));
+
+                        String topName = null;
+                        Long topQty = 0L;
+                        BigDecimal topRev = BigDecimal.ZERO;
+                        if (!topList.isEmpty()) {
+                                TopProductDto top = topList.get(0);
+                                topName = top.getDescription();
+                                topQty = top.getQuantitySold();
+                                topRev = top.getRevenue();
+                        }
+
+                        list.add(MonthlyAnalysisDto.builder()
+                                        .month(m)
+                                        .monthName(MONTH_NAMES[m - 1])
+                                        .revenue(rev)
+                                        .quantitySold(qty)
+                                        .invoiceCount(invCount)
+                                        .topProductName(topName)
+                                        .topProductQuantity(topQty)
+                                        .topProductRevenue(topRev)
+                                        .build());
+                }
+                return list;
+        }
 }
+

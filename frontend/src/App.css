@@ -4,11 +4,12 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
+  color-scheme: dark;
   --bg: #0f172a;
   --surface: #1e293b;
   --surface2: #263346;
   --border: #334155;
-  --text: #e2e8f0;
+  --text: #f1f5f9;
   --text-muted: #94a3b8;
   --primary: #6366f1;
   --primary-hover: #4f46e5;
@@ -19,6 +20,16 @@
   --sidebar-w-collapsed: 60px;
   --radius: 10px;
   --shadow: 0 4px 24px rgba(0,0,0,0.35);
+}
+
+select option {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+/* Fix Bootstrap text overrides in dark mode */
+.table, .table > :not(caption) > * > * {
+  color: var(--text) !important;
 }
 
 body {
@@ -150,12 +161,12 @@ body {
 .dt-table-wrap { overflow-x: auto; }
 .dt-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .dt-table th {
-  background: var(--surface2); color: var(--text-muted); font-weight: 600;
+  background: var(--surface2); color: #cbd5e1; font-weight: 600;
   padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border);
   white-space: nowrap; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
 }
 .dt-table td {
-  padding: 10px 14px; border-bottom: 1px solid rgba(51,65,85,0.4); color: var(--text);
+  padding: 10px 14px; border-bottom: 1px solid rgba(51,65,85,0.4); color: #f1f5f9;
   vertical-align: middle;
 }
 .dt-table tr:hover td { background: rgba(99,102,241,0.04); }
@@ -301,33 +312,217 @@ body {
 .rank-list { list-style: none; display: flex; flex-direction: column; gap: 14px; }
 .rank-row { display: flex; align-items: center; gap: 12px; }
 .rank-badge {
-  flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%;
-  background: var(--surface2); border: 1px solid var(--border); color: var(--text-muted);
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--surface2); border: 1px solid var(--border); color: #cbd5e1;
   font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  transition: transform 0.15s ease;
+}
+.rank-badge.rank-1 {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  border-color: #fbbf24;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+}
+.rank-badge.rank-2 {
+  background: linear-gradient(135deg, #94a3b8, #64748b);
+  color: #fff;
+  border-color: #cbd5e1;
+  box-shadow: 0 0 8px rgba(148, 163, 184, 0.35);
+}
+.rank-badge.rank-3 {
+  background: linear-gradient(135deg, #b45309, #78350f);
+  color: #fff;
+  border-color: #d97706;
+  box-shadow: 0 0 8px rgba(180, 83, 9, 0.35);
 }
 .rank-info { flex: 1; min-width: 0; }
-.rank-name { font-size: 13px; color: var(--text); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rank-bar-track { height: 4px; background: var(--surface2); border-radius: 4px; margin-top: 6px; overflow: hidden; }
-.rank-bar-fill { height: 100%; background: var(--primary); border-radius: 4px; }
+.rank-name { font-size: 13.5px; color: #f8fafc; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-bar-track { height: 5px; background: rgba(51, 65, 85, 0.6); border-radius: 4px; margin-top: 6px; overflow: hidden; }
+.rank-bar-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #818cf8); border-radius: 4px; }
 .rank-stats { flex-shrink: 0; text-align: right; }
-.rank-revenue { font-size: 13px; font-weight: 700; color: var(--text); }
-.rank-qty { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.rank-revenue { font-size: 13.5px; font-weight: 700; color: #38bdf8; }
+.rank-qty { font-size: 11.5px; color: #cbd5e1; margin-top: 2px; }
 
-/* Low-stock severity dot + value color: red once truly out of stock, amber while merely
-   under the minimum — same red/amber vocabulary as the rest of the app (badges, cf-card). */
+/* Low-stock severity dot + value color */
 .stock-dot { flex-shrink: 0; width: 10px; height: 10px; border-radius: 50%; }
 .stock-dot.stock-critical { background: var(--danger); box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
 .stock-dot.stock-warning { background: var(--warning); box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
-.stock-value-critical { font-size: 13px; font-weight: 700; color: var(--danger); }
-.stock-value-warning { font-size: 13px; font-weight: 700; color: var(--warning); }
+.stock-value-critical { font-size: 13px; font-weight: 700; color: #f87171; }
+.stock-value-warning { font-size: 13px; font-weight: 700; color: #fbbf24; }
 
 /* Forecast card */
 .forecast-card { display: flex; flex-direction: column; gap: 8px; padding: 4px 0 0; }
-.forecast-value { font-size: 30px; font-weight: 700; color: var(--text); }
+.forecast-value { font-size: 30px; font-weight: 700; color: #f8fafc; }
 .forecast-trend { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
-.forecast-change { color: var(--text-muted); font-weight: 500; }
+.forecast-change { color: #cbd5e1; font-weight: 500; }
 .forecast-note { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-top: 6px; }
-.chart-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: var(--text-muted); }
+.chart-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Card Controls & Period Pill Selector */
+.card-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.period-pill-group {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+.period-pill {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.period-pill:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+.period-pill.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+.period-subcontrols {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mini-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.mini-btn:hover:not(:disabled) {
+  background: var(--border);
+}
+.mini-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Pagination inside top products */
+.card-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.pagination-info {
+  font-size: 12px;
+  color: #cbd5e1;
+}
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.page-pill-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: #f1f5f9;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.page-pill-btn:hover:not(:disabled) {
+  background: var(--border);
+  color: #fff;
+}
+.page-pill-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.page-pill-btn.current {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 700;
+}
+.page-size-select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: #f1f5f9;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  outline: none;
+}
+
+/* Monthly analysis table */
+.monthly-table-wrap {
+  overflow-x: auto;
+  margin-top: 4px;
+}
+.monthly-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.monthly-table th {
+  background: var(--surface2);
+  color: #cbd5e1;
+  font-weight: 600;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.monthly-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+  color: #f1f5f9;
+  vertical-align: middle;
+}
+.monthly-table tr:hover td {
+  background: rgba(99, 102, 241, 0.08);
+}
+.monthly-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.18);
+  color: #a5b4fc;
+  font-weight: 600;
+  font-size: 11.5px;
+}
+.monthly-top-prod {
+  font-weight: 600;
+  color: #f8fafc;
+}
 
 /* ── Scrollbar global ─────────────────────────────────────── */
 * { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
