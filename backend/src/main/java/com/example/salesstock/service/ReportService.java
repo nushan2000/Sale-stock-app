@@ -221,7 +221,7 @@ public class ReportService {
                                 .build();
         }
 
-        public PagedResponse<TopProductDto> getTopProducts(String fromStr, String toStr, Integer year, Integer month, int page, int size) {
+        public PagedResponse<TopProductDto> getTopProducts(String fromStr, String toStr, Integer year, Integer month, String sortBy, int page, int size) {
                 LocalDate from = null;
                 LocalDate to = null;
 
@@ -240,7 +240,12 @@ public class ReportService {
                 }
                 int p = Math.max(0, page);
                 int s = Math.max(1, Math.min(100, size));
-                Page<TopProductDto> result = invoiceItemRepository.findTopProductsPaged(from, to, PageRequest.of(p, s));
+                Page<TopProductDto> result;
+                if ("quantity".equalsIgnoreCase(sortBy)) {
+                        result = invoiceItemRepository.findTopProductsByQuantityPaged(from, to, PageRequest.of(p, s));
+                } else {
+                        result = invoiceItemRepository.findTopProductsPaged(from, to, PageRequest.of(p, s));
+                }
                 return new PagedResponse<>(result.getContent(), result.getNumber(), result.getSize(),
                                 result.getTotalElements(), result.getTotalPages(), result.isLast());
         }

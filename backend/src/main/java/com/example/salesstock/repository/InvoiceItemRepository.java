@@ -47,6 +47,27 @@ public interface InvoiceItemRepository extends JpaRepository<InvoiceItem, Long> 
             @Param("to") LocalDate to,
             Pageable pageable);
 
+    @Query(value = """
+        SELECT new com.example.salesstock.dto.TopProductDto(p.id, p.description, SUM(ii.quantity), SUM(ii.total))
+        FROM InvoiceItem ii
+        JOIN ii.invoice i
+        JOIN ii.product p
+        WHERE i.invoiceDate >= :from AND i.invoiceDate <= :to
+        GROUP BY p.id, p.description
+        ORDER BY SUM(ii.quantity) DESC, SUM(ii.total) DESC
+        """,
+        countQuery = """
+        SELECT COUNT(DISTINCT p.id)
+        FROM InvoiceItem ii
+        JOIN ii.invoice i
+        JOIN ii.product p
+        WHERE i.invoiceDate >= :from AND i.invoiceDate <= :to
+        """)
+    org.springframework.data.domain.Page<com.example.salesstock.dto.TopProductDto> findTopProductsByQuantityPaged(
+            @Param("from") LocalDate from,
+            @Param("to") LocalDate to,
+            Pageable pageable);
+
     @Query("""
         SELECT MONTH(i.invoiceDate), SUM(ii.total), SUM(ii.quantity), COUNT(DISTINCT i.id)
         FROM InvoiceItem ii

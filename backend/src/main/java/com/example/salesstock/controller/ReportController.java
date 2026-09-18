@@ -37,9 +37,10 @@ public class ReportController {
             @RequestParam(required = false) String to,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month,
+            @RequestParam(required = false, defaultValue = "revenue") String sortBy,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(reportService.getTopProducts(from, to, year, month, page, size));
+        return ResponseEntity.ok(reportService.getTopProducts(from, to, year, month, sortBy, page, size));
     }
 
     @GetMapping("/monthly-analysis")
