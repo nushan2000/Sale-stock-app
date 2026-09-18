@@ -57,7 +57,7 @@ public class SecurityConfig {
                 // requires auth, unlike the plain dashboard summary.
                 .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/sales").permitAll()
-                .requestMatchers(HttpMethod.GET, "/api/reports/dashboard").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/reports/dashboard", "/api/reports/top-products", "/api/reports/monthly-analysis").permitAll()
                 // All other API endpoints just require authentication
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()

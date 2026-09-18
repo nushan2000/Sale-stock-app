@@ -18,13 +18,13 @@ public class Shift {
     @JoinColumn(name = "user_id", nullable = false)
     private AppUser user;
 
-    @Column(name = "start_time", nullable = false)
+    @Column(name = "start_time", nullable = false, columnDefinition = "DATETIME")
     private LocalDateTime startTime = LocalDateTime.now();
 
     @Column(name = "opening_amount", precision = 15, scale = 2, nullable = false)
     private BigDecimal openingAmount = BigDecimal.ZERO;
 
-    @Column(name = "end_time")
+    @Column(name = "end_time", columnDefinition = "DATETIME")
     private LocalDateTime endTime;
 
     @Column(name = "closing_amount_counted", precision = 15, scale = 2)
@@ -42,7 +42,7 @@ public class Shift {
 
     private String notes;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", columnDefinition = "DATETIME")
     private LocalDateTime createdAt = LocalDateTime.now();
 
     public enum ShiftStatus {

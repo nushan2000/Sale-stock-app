@@ -38,12 +38,12 @@ const Cart = ({ cart, removeFromCart, checkout, updateUnitPrice }) => {
                             </tr>
                         ))}
                         {cart.length === 0 && (
-                            <tr><td colSpan="5" className="text-center">Cart is empty</td></tr>
+                            <tr><td colSpan="5" className="text-center" style={{ color: '#94a3b8', padding: '24px 0', fontStyle: 'italic' }}>Your cart is empty</td></tr>
                         )}
                     </tbody>
                 </Table>
                 <div className="d-flex justify-content-between align-items-center mt-3">
-                    <strong>Total: ${total.toFixed(2)}</strong>
+                    <strong style={{ color: '#38bdf8', fontSize: '15.5px' }}>Total: ${total.toFixed(2)}</strong>
                     <Button variant="success" onClick={checkout} disabled={cart.length === 0}>
                         Checkout
                     </Button>
