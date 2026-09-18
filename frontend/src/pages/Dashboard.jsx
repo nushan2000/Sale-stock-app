@@ -39,6 +39,7 @@ const Dashboard = () => {
 
     // Top Products & Analysis states
     const [periodType, setPeriodType] = useState('year'); // 'year' | 'month' | '30days'
+    const [rankBy, setRankBy] = useState('revenue'); // 'revenue' | 'quantity'
     const [selectedYear, setSelectedYear] = useState(CURRENT_YEAR);
     const [selectedMonth, setSelectedMonth] = useState(CURRENT_MONTH);
     const [viewMode, setViewMode] = useState('ranking'); // 'ranking' | 'monthlyAnalysis'
@@ -62,7 +63,7 @@ const Dashboard = () => {
     // Reset pagination on filter changes
     useEffect(() => {
         setPage(0);
-    }, [periodType, selectedYear, selectedMonth, pageSize]);
+    }, [periodType, selectedYear, selectedMonth, pageSize, rankBy]);
 
     // Fetch paginated top products
     useEffect(() => {
@@ -72,6 +73,7 @@ const Dashboard = () => {
         const params = {
             page,
             size: pageSize,
+            sortBy: rankBy,
         };
         if (periodType === 'month') {
             params.year = selectedYear;
@@ -84,7 +86,7 @@ const Dashboard = () => {
             .then(r => setTopProductsPage(r.data))
             .catch(() => setTopProductsPage({ content: [], totalPages: 1, totalElements: 0 }))
             .finally(() => setTopProductsLoading(false));
-    }, [viewMode, periodType, selectedYear, selectedMonth, page, pageSize]);
+    }, [viewMode, periodType, selectedYear, selectedMonth, rankBy, page, pageSize]);
 
     // Fetch monthly breakdown analysis
     useEffect(() => {
@@ -114,7 +116,7 @@ const Dashboard = () => {
     const recentSales = data?.recentSales || [];
 
     const topProductList = topProductsPage.content || [];
-    const maxRevenue = Math.max(1, ...topProductList.map(p => Number(p.revenue) || 0));
+    const maxMetric = Math.max(1, ...topProductList.map(p => (rankBy === 'quantity' ? Number(p.quantitySold) : Number(p.revenue)) || 0));
 
     const handlePrevMonth = () => {
         if (selectedMonth === 1) {
@@ -140,6 +142,7 @@ const Dashboard = () => {
         setViewMode('ranking');
     };
 
+    const rankByLabel = rankBy === 'quantity' ? 'by Units Sold' : 'by Revenue';
     const periodHeading = periodType === '30days'
         ? 'Last 30 Days'
         : periodType === 'month'
@@ -202,7 +205,7 @@ const Dashboard = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                                     <span>🏆 Top Products & Sales Analysis</span>
                                     <span style={{ fontSize: 13, color: '#38bdf8', fontWeight: 500 }}>
-                                        ({viewMode === 'ranking' ? periodHeading : `Monthly Breakdown ${selectedYear}`})
+                                        ({viewMode === 'ranking' ? `${periodHeading} · ${rankByLabel}` : `Monthly Breakdown ${selectedYear}`})
                                     </span>
                                 </div>
 
@@ -243,6 +246,24 @@ const Dashboard = () => {
                                                 onClick={() => setPeriodType('year')}
                                             >
                                                 Entire Year
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Rank By Metric Selector */}
+                                    {viewMode === 'ranking' && (
+                                        <div className="period-pill-group" title="Rank by revenue or units sold">
+                                            <button
+                                                className={`period-pill ${rankBy === 'revenue' ? 'active' : ''}`}
+                                                onClick={() => setRankBy('revenue')}
+                                            >
+                                                💰 Revenue
+                                            </button>
+                                            <button
+                                                className={`period-pill ${rankBy === 'quantity' ? 'active' : ''}`}
+                                                onClick={() => setRankBy('quantity')}
+                                            >
+                                                📦 Units Sold
                                             </button>
                                         </div>
                                     )}
@@ -326,13 +347,22 @@ const Dashboard = () => {
                                                                 <div className="rank-bar-track">
                                                                     <div
                                                                         className="rank-bar-fill"
-                                                                        style={{ width: `${(Number(p.revenue) / maxRevenue) * 100}%` }}
+                                                                        style={{ width: `${(((rankBy === 'quantity' ? Number(p.quantitySold) : Number(p.revenue)) || 0) / maxMetric) * 100}%` }}
                                                                     />
                                                                 </div>
                                                             </div>
                                                             <div className="rank-stats">
-                                                                <div className="rank-revenue">${fmt(p.revenue)}</div>
-                                                                <div className="rank-qty">{p.quantitySold} units sold</div>
+                                                                {rankBy === 'quantity' ? (
+                                                                    <>
+                                                                        <div className="rank-revenue" style={{ color: '#38bdf8' }}>{p.quantitySold} units sold</div>
+                                                                        <div className="rank-qty" style={{ color: '#cbd5e1' }}>${fmt(p.revenue)} revenue</div>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <div className="rank-revenue" style={{ color: '#38bdf8' }}>${fmt(p.revenue)}</div>
+                                                                        <div className="rank-qty" style={{ color: '#cbd5e1' }}>{p.quantitySold} units sold</div>
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </li>
                                                     );
