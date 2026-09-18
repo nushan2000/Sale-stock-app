@@ -31,4 +31,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                           Pageable pageable);
 
     List<Product> findByVendor(String vendor);
+
+    // Worst-stocked items first — most negative (amountInStock - minAmount) sorts first.
+    @Query("SELECT new com.example.salesstock.dto.LowStockItemDto(p.id, p.description, p.amountInStock, p.minAmount) " +
+            "FROM Product p " +
+            "WHERE p.minAmount IS NOT NULL AND p.amountInStock IS NOT NULL AND p.amountInStock <= p.minAmount " +
+            "ORDER BY (p.amountInStock - p.minAmount) ASC")
+    List<com.example.salesstock.dto.LowStockItemDto> findLowStockItems(org.springframework.data.domain.Pageable pageable);
 }

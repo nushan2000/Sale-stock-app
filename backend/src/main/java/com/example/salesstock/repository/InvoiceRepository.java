@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 
 public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
@@ -74,4 +75,8 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 """, nativeQuery = true)
         BigDecimal sumProductCost(@Param("from") LocalDate from,
                                   @Param("to") LocalDate to);
+
+        @Query("SELECT new com.example.salesstock.dto.RecentSaleDto(i.invoiceNumber, c.name, i.grandTotal, i.status, i.invoiceDate) " +
+                "FROM Invoice i LEFT JOIN i.customer c ORDER BY i.createdAt DESC")
+        List<com.example.salesstock.dto.RecentSaleDto> findRecentSales(Pageable pageable);
 }

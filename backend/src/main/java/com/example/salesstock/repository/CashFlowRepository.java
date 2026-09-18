@@ -52,5 +52,14 @@ public interface CashFlowRepository extends JpaRepository<CashFlow, Long> {
     @Query("SELECT cf FROM CashFlow cf WHERE cf.transactionDate >= :from AND cf.transactionDate <= :to ORDER BY cf.transactionDate DESC")
     List<CashFlow> findAllForExport(@Param("from") LocalDate from, @Param("to") LocalDate to);
 
+    // Per-day revenue for trend charts. Sparse — days with zero credits simply don't
+    // appear as a row, so callers must gap-fill against the requested range themselves.
+    @Query("SELECT new com.example.salesstock.dto.DailyPointDto(cf.transactionDate, SUM(cf.amount)) " +
+            "FROM CashFlow cf WHERE cf.type = 'CREDIT' AND cf.category = :category " +
+            "AND cf.transactionDate >= :from AND cf.transactionDate <= :to " +
+            "GROUP BY cf.transactionDate ORDER BY cf.transactionDate ASC")
+    List<com.example.salesstock.dto.DailyPointDto> dailyCreditsByCategory(@Param("category") CashFlow.FlowCategory category,
+                                                                           @Param("from") LocalDate from,
+                                                                           @Param("to") LocalDate to);
 
 }
