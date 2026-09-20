@@ -4,7 +4,13 @@ import DataTable from "../components/DataTable";
 import FormDialog from "../components/FormDialog";
 import Select from "react-select";
 
-const EMPTY_ITEM = { productId: "", quantity: 1, unitCost: "" };
+const EMPTY_ITEM = { productId: "", quantity: 1, unitCost: "", newPrice: "" };
+
+const STATUS_COLORS = {
+  PAID: "#22c55e",
+  UNPAID: "#ef4444",
+  PARTIAL: "#f59e0b",
+};
 
 const Purchases = () => {
   const [rows, setRows] = useState([]);
@@ -17,8 +23,13 @@ const Purchases = () => {
   const [dialog, setDialog] = useState(false);
   const [error, setError] = useState("");
   const [suppliers, setSuppliers] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [products, setProducts] = useState([]);
   const [supplier, setSupplier] = useState("");
+
+  // View GRN details state
+  const [viewDialog, setViewDialog] = useState(false);
+  const [selectedPurchase, setSelectedPurchase] = useState(null);
 
   const [form, setForm] = useState({
     supplierId: "",
@@ -43,18 +54,40 @@ const Purchases = () => {
   useEffect(() => {
     load();
   }, [load]);
+
   useEffect(() => {
     API.get("/suppliers/all")
       .then((r) => setSuppliers(r.data))
       .catch(() => {});
+
+    // Fetch all products so products are always available in the GRN form
+    API.get("/products/all")
+      .then((r) => {
+        const list = Array.isArray(r.data) ? r.data : (r.data.content || []);
+        setAllProducts(list);
+        setProducts(list);
+      })
+      .catch(() => {
+        API.get("/products", { params: { size: 1000 } })
+          .then((r) => {
+            const list = r.data.content || r.data || [];
+            setAllProducts(list);
+            setProducts(list);
+          })
+          .catch(() => {});
+      });
   }, []);
 
   const updateItem = (idx, field, value) => {
     const items = [...form.items];
     items[idx] = { ...items[idx], [field]: value };
     if (field === "productId") {
-      const prod = products.find((p) => p.id == value);
-      if (prod) items[idx].unitCost = prod.cost || 0;
+      const availableList = products.length > 0 ? products : allProducts;
+      const prod = availableList.find((p) => p.id == value);
+      if (prod) {
+        items[idx].unitCost = prod.cost !== undefined && prod.cost !== null ? prod.cost : 0;
+        items[idx].newPrice = prod.retail !== undefined && prod.retail !== null ? prod.retail : "";
+      }
     }
     setForm((f) => ({ ...f, items }));
   };
@@ -71,11 +104,23 @@ const Purchases = () => {
       items: form.items.map((i) => ({
         productId: parseInt(i.productId),
         quantity: parseInt(i.quantity),
-        unitCost: parseFloat(i.unitCost),
+        unitCost: parseFloat(i.unitCost || 0),
+        newPrice:
+          i.newPrice !== "" && i.newPrice !== undefined && i.newPrice !== null
+            ? parseFloat(i.newPrice)
+            : undefined,
       })),
     })
       .then(() => {
         setDialog(false);
+        setForm({
+          supplierId: "",
+          purchaseDate: today(),
+          paymentStatus: "UNPAID",
+          paymentMethod: "CASH",
+          notes: "",
+          items: [{ ...EMPTY_ITEM }],
+        });
         load();
       })
       .catch((err) =>
@@ -83,19 +128,41 @@ const Purchases = () => {
       );
   };
 
-  const supplierProducts = (supplier) => {
-    API.get(`/products/vendor/${supplier}`)
-      .then((r) => setProducts(r.data))
-      .catch(() => {});
+  const supplierProducts = (supplierName) => {
+    if (!supplierName) {
+      setProducts(allProducts);
+      return;
+    }
+    API.get(`/products/vendor/${supplierName}`)
+      .then((r) => {
+        if (r.data && r.data.length > 0) {
+          setProducts(r.data);
+        } else {
+          setProducts(allProducts);
+        }
+      })
+      .catch(() => setProducts(allProducts));
   };
 
-  const productOptions = [...products]
+  const viewPurchase = (id) => {
+    API.get(`/purchases/${id}`)
+      .then((r) => {
+        setSelectedPurchase(r.data);
+        setViewDialog(true);
+      })
+      .catch(() => setError("Failed to load GRN details"));
+  };
+
+  const activeProductList = products.length > 0 ? products : allProducts;
+  const productOptions = [...activeProductList]
     .sort((a, b) => (a.stockNo || "").localeCompare(b.stockNo || ""))
     .map((p) => ({
-      value: p.id, // Stored value
-      label: p.stockNo || "(no stock #)", // Main text
+      value: p.id,
+      label: p.stockNo || "(no stock #)",
       description: p.description || "",
       stockNo: p.stockNo || "",
+      cost: p.cost,
+      retail: p.retail,
     }));
 
   const columns = [
@@ -111,7 +178,25 @@ const Purchases = () => {
       label: "Total",
       render: (r) => `$${fmt(r.totalAmount)}`,
     },
-    { key: "paymentStatus", label: "Status" },
+    {
+      key: "paymentStatus",
+      label: "Status",
+      render: (r) => (
+        <span
+          className="badge"
+          style={{
+            background: STATUS_COLORS[r.paymentStatus] || "#64748b",
+            color: "#fff",
+            padding: "2px 8px",
+            borderRadius: "4px",
+            fontSize: "12px",
+            fontWeight: "600",
+          }}
+        >
+          {r.paymentStatus}
+        </span>
+      ),
+    },
     { key: "paymentMethod", label: "Method" },
   ];
 
@@ -119,7 +204,13 @@ const Purchases = () => {
     <div className="page-container">
       <div className="page-header">
         <h2 className="page-title">📦 Purchases (GRN)</h2>
-        <button className="btn-primary" onClick={() => setDialog(true)}>
+        <button
+          className="btn-primary"
+          onClick={() => {
+            setProducts(allProducts);
+            setDialog(true);
+          }}
+        >
           + New GRN
         </button>
       </div>
@@ -140,6 +231,16 @@ const Purchases = () => {
         }}
         searchPlaceholder="Search GRN or supplier…"
         loading={loading}
+        actions={(row) => (
+          <button
+            className="btn-icon"
+            title="View GRN Products"
+            onClick={() => viewPurchase(row.id)}
+            style={{ fontSize: "15px", cursor: "pointer" }}
+          >
+            👁️
+          </button>
+        )}
         filters={
           <div className="dt-filter-row">
             <input
@@ -164,6 +265,7 @@ const Purchases = () => {
         }
       />
 
+      {/* New Purchase (GRN) Dialog */}
       <FormDialog
         open={dialog}
         onClose={() => setDialog(false)}
@@ -189,16 +291,15 @@ const Purchases = () => {
                 onChange={(e) => {
                   const supplierId = e.target.value;
                   setForm((f) => ({ ...f, supplierId }));
-                  const supplier = suppliers.find(
+                  const matchedSupplier = suppliers.find(
                     (s) => s.id.toString() === supplierId,
                   );
-                  if (supplier) {
-                    setSupplier(supplier.name);
-                    supplierProducts(supplier.name);
+                  if (matchedSupplier) {
+                    setSupplier(matchedSupplier.name);
+                    supplierProducts(matchedSupplier.name);
                   } else {
-                    // "No Supplier (Direct)" selected — clear supplier-scoped state
                     setSupplier("");
-                    setProducts([]);
+                    setProducts(allProducts);
                   }
                 }}
               >
@@ -220,11 +321,6 @@ const Purchases = () => {
                   setForm((f) => ({ ...f, purchaseDate: e.target.value }))
                 }
               />
-            </div>
-            <div className="form-group">
-              <label>Payment Date *</label>
-              {/* backend should be change */}
-              {/* <input type="date" required value={form.paymentDate} onChange={e => setForm(f => ({ ...f, paymentDate: e.target.value }))} /> */}
             </div>
             <div className="form-group">
               <label>Payment Status</label>
@@ -253,17 +349,29 @@ const Purchases = () => {
                 <option value="CHEQUE">Cheque</option>
               </select>
             </div>
+            <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+              <label>Notes</label>
+              <input
+                type="text"
+                placeholder="Optional notes or invoice reference..."
+                value={form.notes}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, notes: e.target.value }))
+                }
+              />
+            </div>
           </div>
 
-          <div className="section-label">Items</div>
+          <div className="section-label" style={{ marginTop: 16 }}>Items</div>
           <table className="line-items-table">
             <thead>
               <tr>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Unit Cost</th>
-                <th>Line Total</th>
-                <th></th>
+                <th style={{ minWidth: 240 }}>Product</th>
+                <th style={{ width: 75 }}>Qty</th>
+                <th style={{ width: 110 }}>Unit Cost</th>
+                <th style={{ width: 115 }}>New Price</th>
+                <th style={{ width: 100 }}>Line Total</th>
+                <th style={{ width: 40 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -280,16 +388,30 @@ const Purchases = () => {
                         ) || null
                       }
                       filterOption={(option, input) => {
-                        const search = input.toLowerCase();
-
+                        const searchInput = input.toLowerCase();
                         return (
-                          option.data.stockNo.toLowerCase().includes(search) ||
-                          option.data.description.toLowerCase().includes(search)
+                          (option.data.stockNo || "")
+                            .toLowerCase()
+                            .includes(searchInput) ||
+                          (option.data.description || "")
+                            .toLowerCase()
+                            .includes(searchInput)
                         );
                       }}
                       formatOptionLabel={(option) => (
                         <div>
-                          <strong>{option.stockNo}</strong>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <strong>{option.stockNo}</strong>
+                            <span style={{ fontSize: 11, color: "#94a3b8" }}>
+                              Cost: ${fmt(option.cost)} | Sell: ${fmt(option.retail)}
+                            </span>
+                          </div>
                           <div style={{ fontSize: 12, color: "#666" }}>
                             {option.description}
                           </div>
@@ -305,11 +427,12 @@ const Purchases = () => {
                     <input
                       type="number"
                       min="1"
+                      required
                       value={item.quantity}
                       onChange={(e) =>
                         updateItem(idx, "quantity", e.target.value)
                       }
-                      style={{ width: 60 }}
+                      style={{ width: 65 }}
                     />
                   </td>
                   <td>
@@ -317,24 +440,31 @@ const Purchases = () => {
                       type="number"
                       step="0.01"
                       min="0"
+                      required
+                      placeholder="Cost"
+                      title="Unit Cost (updates product cost in inventory)"
                       value={item.unitCost}
                       onChange={(e) =>
                         updateItem(idx, "unitCost", e.target.value)
                       }
-                      style={{ width: 80 }}
+                      style={{ width: 95 }}
                     />
                   </td>
-                  {/* <td>
+                  <td>
                     <input
-                      type="string"
-                      value={item.unitCost}
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Selling"
+                      title="New selling price (updates product retail price)"
+                      value={item.newPrice}
                       onChange={(e) =>
-                        updateItem(idx, "unitCost", e.target.value)
+                        updateItem(idx, "newPrice", e.target.value)
                       }
-                      style={{ width: 80 }}
+                      style={{ width: 95 }}
                     />
-                  </td> */}
-                  <td style={{ color: "white" }}>
+                  </td>
+                  <td style={{ color: "white", fontWeight: 600 }}>
                     $
                     {fmt(
                       parseFloat(item.unitCost || 0) *
@@ -376,6 +506,117 @@ const Purchases = () => {
           </div>
         </form>
       </FormDialog>
+
+      {/* View GRN Details Dialog */}
+      {selectedPurchase && (
+        <FormDialog
+          open={viewDialog}
+          onClose={() => setViewDialog(false)}
+          title={`📦 GRN: ${selectedPurchase.grnNumber}`}
+          size="lg"
+          footer={
+            <button className="btn-secondary" onClick={() => setViewDialog(false)}>
+              Close
+            </button>
+          }
+        >
+          <div className="invoice-view">
+            <div className="form-grid">
+              <div>
+                <strong>GRN #:</strong> {selectedPurchase.grnNumber}
+              </div>
+              <div>
+                <strong>Supplier:</strong> {selectedPurchase.supplier?.name || "Direct"}
+              </div>
+              <div>
+                <strong>Date:</strong> {selectedPurchase.purchaseDate}
+              </div>
+              <div>
+                <strong>Status:</strong>{" "}
+                <span
+                  className="badge"
+                  style={{
+                    background: STATUS_COLORS[selectedPurchase.paymentStatus] || "#64748b",
+                    color: "#fff",
+                    padding: "3px 8px",
+                    borderRadius: "4px",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                  }}
+                >
+                  {selectedPurchase.paymentStatus}
+                </span>
+              </div>
+              <div>
+                <strong>Payment Method:</strong> {selectedPurchase.paymentMethod}
+              </div>
+              <div>
+                <strong>Total Amount:</strong>{" "}
+                <strong style={{ color: "#22c55e" }}>
+                  ${fmt(selectedPurchase.totalAmount)}
+                </strong>
+              </div>
+            </div>
+
+            {selectedPurchase.notes && (
+              <div className="info-box mt-2">
+                <strong>Notes:</strong> {selectedPurchase.notes}
+              </div>
+            )}
+
+            <div className="section-label mt-2" style={{ fontWeight: 600, fontSize: 14 }}>
+              GRN Products ({selectedPurchase.items?.length || 0})
+            </div>
+            <div className="dt-table-wrap">
+              <table className="dt-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 45 }}>#</th>
+                    <th>Stock #</th>
+                    <th>Product Description</th>
+                    <th style={{ textAlign: "right", width: 70 }}>Qty</th>
+                    <th style={{ textAlign: "right", width: 110 }}>Unit Cost</th>
+                    <th style={{ textAlign: "right", width: 110 }}>Line Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {!selectedPurchase.items || selectedPurchase.items.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="dt-empty">
+                        No products found in this GRN
+                      </td>
+                    </tr>
+                  ) : (
+                    selectedPurchase.items.map((item, idx) => (
+                      <tr key={item.id || idx}>
+                        <td>{idx + 1}</td>
+                        <td>
+                          <strong>{item.product?.stockNo || "—"}</strong>
+                        </td>
+                        <td>{item.product?.description || "—"}</td>
+                        <td style={{ textAlign: "right" }}>{item.quantity}</td>
+                        <td style={{ textAlign: "right" }}>${fmt(item.unitCost)}</td>
+                        <td style={{ textAlign: "right", fontWeight: "600" }}>
+                          ${fmt(item.total)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="invoice-totals">
+              <div className="totals-row">
+                <span>Total GRN Amount:</span>
+                <strong style={{ color: "#22c55e", fontSize: 18 }}>
+                  ${fmt(selectedPurchase.totalAmount)}
+                </strong>
+              </div>
+            </div>
+          </div>
+        </FormDialog>
+      )}
     </div>
   );
 };
