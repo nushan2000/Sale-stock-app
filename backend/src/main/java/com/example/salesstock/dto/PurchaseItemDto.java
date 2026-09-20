@@ -20,5 +20,7 @@ public class PurchaseItemDto {
     @NotNull
     private BigDecimal unitCost;
 
+    private BigDecimal newPrice;
+
     private BigDecimal total;
 }

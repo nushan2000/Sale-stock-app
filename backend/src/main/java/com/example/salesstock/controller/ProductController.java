@@ -21,10 +21,10 @@ public class ProductController {
     @Autowired
     private ProductRepository productRepository;
 
-//    @GetMapping
-//    public List<Product> getAllProducts() {
-//        return productRepository.findAll();
-//    }
+    @GetMapping("/all")
+    public List<Product> getAllProducts() {
+        return productRepository.findAll();
+    }
 
     @PostMapping
     public Product createProduct(@RequestBody Product product) {

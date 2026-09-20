@@ -39,8 +39,10 @@ public class PurchaseService {
     }
 
     public Purchase getById(Long id) {
-        return purchaseRepository.findById(id)
+        Purchase purchase = purchaseRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Purchase not found: " + id));
+        purchase.getItems().size();
+        return purchase;
     }
 
     public Purchase create(PurchaseDto dto) {
@@ -76,10 +78,13 @@ public class PurchaseService {
             purchase.getItems().add(pi);
 
             // Business rule: increase stock
-            int stockBefore = product.getAmountInStock();
+            int stockBefore = product.getAmountInStock() != null ? product.getAmountInStock() : 0;
             product.setAmountInStock(stockBefore + itemDto.getQuantity());
             // update product cost price
             product.setCost(itemDto.getUnitCost());
+            if (itemDto.getNewPrice() != null && itemDto.getNewPrice().compareTo(BigDecimal.ZERO) > 0) {
+                product.setRetail(itemDto.getNewPrice());
+            }
             productRepository.save(product);
 
             StockMovement sm = new StockMovement();
